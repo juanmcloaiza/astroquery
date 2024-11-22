@@ -46,7 +46,7 @@ esa.jwst
 eso
 ^^^
 
-- Fix failing test: add survey `ERIS-SPIFFIER` to `SGRA_SURVEYS` list in `test_eso_remote.py` [#3136]
+- Fix failing test: add survey ``ERIS-SPIFFIER`` to ``SGRA_SURVEYS`` list in ``test_eso_remote.py`` [#3136]
 
 mpc
 ^^^
