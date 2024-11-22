@@ -43,6 +43,11 @@ esa.jwst
 
 - Add download_files_from_program method to get all products by program id [#3073]
 
+eso
+^^^
+
+- Fix failing test: add survey `ERIS-SPIFFIER` to `SGRA_SURVEYS` list in `test_eso_remote.py` [#3136]
+
 mpc
 ^^^
 
