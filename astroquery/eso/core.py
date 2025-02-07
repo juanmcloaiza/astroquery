@@ -381,7 +381,6 @@ class EsoClass(QueryWithLogin):
 
         return self.query_tap_service(query_str=query, cache=cache)
 
-    # ex query_collections
     def query_collections(self,
                           collections: Union[List[str], str], *,
                           ra: float = None, dec: float = None, radius: float = None,
@@ -396,7 +395,6 @@ class EsoClass(QueryWithLogin):
                                              print_help=print_help, cache=cache,
                                              **kwargs)
 
-    # ex query_main
     def query_main(self,
                    instruments: Union[List[str], str] = None, *,
                    ra: float = None, dec: float = None, radius: float = None,
