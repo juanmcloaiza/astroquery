@@ -11,7 +11,7 @@ class Conf(_config.ConfigNamespace):
     """
 
     row_limit = _config.ConfigItem(
-        50,
+        1000,
         'Maximum number of rows returned (set to -1 for unlimited).')
     username = _config.ConfigItem(
         "",
@@ -19,6 +19,9 @@ class Conf(_config.ConfigNamespace):
     tap_url = _config.ConfigItem(
         "https://archive.eso.org/tap_obs",
         'URL for TAP queries.')
+    tap_cat_url = _config.ConfigItem(
+        "https://archive.eso.org/tap_cat",
+        'URL for TAP catalogue queries.')
 
 
 conf = Conf()

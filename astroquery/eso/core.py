@@ -23,7 +23,6 @@ import xml.etree.ElementTree as ET
 from typing import List, Optional, Tuple, Dict, Set, Union
 
 import astropy.table
-import astropy.utils.data
 import astropy.units as u
 import keyring
 import requests.exceptions
@@ -31,16 +30,20 @@ from astropy.table import Table, Column
 from astropy.utils.decorators import deprecated_renamed_argument
 from bs4 import BeautifulSoup
 import pyvo
+import numpy as np
 
 from astroquery import log, cache_conf
 from . import conf
-from ..exceptions import RemoteServiceError, LoginError, \
-    NoResultsWarning, MaxResultsWarning
+from ..exceptions import RemoteServiceError, LoginError, NoResultsWarning, MaxResultsWarning
 from ..query import QueryWithLogin
 from ..utils import schema
-from .utils import py2adql, _split_str_as_list_of_str, \
-    adql_sanitize_val, to_cache, eso_hash, are_coords_valid, \
-    read_table_from_file, is_file_expired
+from .utils import py2adql, _split_str_as_list_of_str, adql_sanitize_val, to_cache, eso_hash, are_coords_valid, read_table_from_file, is_file_expired
+
+# Import catalogue helper functions from utils
+from .utils import (_create_query_all_catalogues, _create_query_all_columns, _create_query_catalogues,
+                    _create_query_table_base, _set_last_version, _is_collection_list_at_eso, _is_table_list_at_eso,
+                    _is_collection_and_table_list_at_eso, _get_catalogue_length_from_tables, _is_column_list_in_catalogues,
+                    _get_id_ra_dec_from_columns)
 
 __doctest_skip__ = ['EsoClass.*']
 
@@ -107,11 +110,18 @@ class EsoClass(QueryWithLogin):
         else:
             self._timeout = value
 
-    def tap_url(self) -> str:
-        url = conf.tap_url
+    def tap_url(self, tap='obs') -> str:
+        """Get the TAP URL for the ESO archive."""
+        if tap=='obs':
+            url = conf.tap_url
+        elif tap=='cat':
+            url = conf.tap_cat_url
         if self.USE_DEV_TAP:
             try:
-                url = os.environ['TAP_URL']
+                if tap=='obs':
+                    url = os.environ['TAP_URL']
+                elif tap=='cat':
+                    url = os.environ['TAP_CAT_URL']
             except KeyError as e:
                 raise KeyError(
                     "Running on dev mode, but TAP_URL environment variable is not set"
@@ -808,6 +818,221 @@ class EsoClass(QueryWithLogin):
             return self.query_tap_service(query_str=query, cache=cache)
         else:
             raise NotImplementedError
+        
 
+    def _run_query_tap(self, query_str: str, type_of_query: str = 'sync', maxrec: Optional[int] = None) -> Table:
+        """
+        Execute a TAP query using the ESO TAP service.
 
+        This method dispatches the provided ADQL query string to the TAP service using either
+        a synchronous or asynchronous approach. For asynchronous queries, the method polls
+        the job status until completion, then returns the result as an Astropy Table.
+
+        Parameters
+        ----------
+        query_str : str
+            The ADQL query string to be executed.
+        type_of_query : str, optional
+            The type of TAP query to run. Valid values are 'sync' for synchronous queries
+            and 'async' for asynchronous queries. Default is 'sync'.
+        maxrec : int, optional
+            The maximum number of records to retrieve. If not provided, the method uses the
+            ROW_LIMIT if defined, otherwise defaults to sys.maxsize.
+
+        Returns
+        -------
+        Table
+            An Astropy Table containing the results of the query.
+
+        Raises
+        ------
+        ValueError
+            If the provided type_of_query is not recognized.
+        """
+        maxrec = maxrec if maxrec is not None else (self.ROW_LIMIT if self.ROW_LIMIT and self.ROW_LIMIT > 0 else sys.maxsize)
+        tap = pyvo.dal.TAPService(self.tap_url(tap='cat'))
+        if type_of_query == 'sync':
+            return tap.search(query_str, maxrec=maxrec).to_table()
+        elif type_of_query == 'async':
+            tap_job = tap.submit_job(query=query_str, maxrec=maxrec)
+            tap_job.run()
+            for status in ["EXECUTING", "COMPLETED", "ERROR", "ABORTED"]:
+                tap_job.wait(phases=[status], timeout=10.0)
+                log.info(f"Query status: {tap_job.phase}")
+            tap_job.raise_if_error()
+            return tap_job.fetch_result().to_table()
+        else:
+            raise ValueError(f"Invalid type_of_query: {type_of_query}")
+
+    def list_catalogues(self, all_versions: bool = False, collections: Union[str, List[str]] = None,
+                        tables: Union[str, List[str]] = None, verbose: bool = False) -> Table:
+        """
+        Retrieve metadata for ESO catalogues.
+
+        This method builds an ADQL query to retrieve catalogue metadata from the ESO TAP service.
+        Optional filters allow limiting the results by catalogue collection(s) and/or table name(s).
+        The returned table is sorted by collection, table name, and version. Additional columns
+        for RA, Dec, and Source ID are added based on column metadata.
+
+        Parameters
+        ----------
+        all_versions : bool, optional
+            If True, includes all versions of the catalogues; otherwise, only the latest version.
+            Default is False.
+        collections : str or list of str, optional
+            A collection name or list of collection names to filter the catalogues.
+        tables : str or list of str, optional
+            A table name or list of table names to filter the catalogues.
+        verbose : bool, optional
+            If True, prints the generated ADQL query. Default is False.
+
+        Returns
+        -------
+        Table
+            An Astropy Table containing the catalogue metadata with additional RA, Dec, and Source ID columns.
+        """
+        clean_collections = _is_collection_list_at_eso(self, collections)
+        clean_tables = _is_table_list_at_eso(self, tables)
+        query = _create_query_all_catalogues(all_versions, clean_collections, clean_tables)
+        if verbose:
+            print("Query:\n", query)
+        table = self._run_query_tap(query, type_of_query='sync', maxrec=self.ROW_LIMIT)
+        table.sort(["collection", "table_name", "version"])
+        _set_last_version(table, update=True)
+        id_ra_dec_table = _get_id_ra_dec_from_columns(self, clean_collections)
+        ra_id, dec_id, source_id = [], [], []
+        for t_name in table["table_name"]:
+            mask = (id_ra_dec_table["table_name"] == t_name)
+            id_list = id_ra_dec_table[mask]["column_name"][id_ra_dec_table[mask]["ucd"] == "meta.id;meta.main"].tolist()
+            ra_list = id_ra_dec_table[mask]["column_name"][id_ra_dec_table[mask]["ucd"] == "pos.eq.ra;meta.main"].tolist()
+            dec_list = id_ra_dec_table[mask]["column_name"][id_ra_dec_table[mask]["ucd"] == "pos.eq.dec;meta.main"].tolist()
+            source_id.append(id_list[0] if len(id_list) == 1 else None)
+            ra_id.append(ra_list[0] if len(ra_list) == 1 else None)
+            dec_id.append(dec_list[0] if len(dec_list) == 1 else None)
+        table.add_column(Column(data=ra_id, name="table_RA", dtype=str, description="Identifier for RA in the catalog"))
+        table.add_column(Column(data=dec_id, name="table_Dec", dtype=str, description="Identifier for Dec in the catalog"))
+        table.add_column(Column(data=source_id, name="table_ID", dtype=str, description="Identifier for Source ID in the catalog"))
+        return table
+
+    def all_list_catalogues(self, all_versions: bool = False, verbose: bool = False) -> Table:
+        """
+        Retrieve metadata for all ESO catalogues.
+
+        This is a convenience method that retrieves a master table containing metadata for all
+        available ESO catalogues. It is equivalent to calling list_catalogues() with no filters.
+
+        Parameters
+        ----------
+        all_versions : bool, optional
+            If True, includes all versions of the catalogues; otherwise, only the latest version.
+            Default is False.
+        verbose : bool, optional
+            If True, prints the generated ADQL query. Default is False.
+
+        Returns
+        -------
+        Table
+            An Astropy Table containing metadata for all ESO catalogues.
+        """
+        return self.list_catalogues(all_versions=all_versions, collections=None, tables=None, verbose=verbose)
+
+    def list_catalogues_info(self, collections: Union[str, List[str]] = None,
+                             tables: Union[str, List[str]] = None, verbose: bool = False) -> Table:
+        """
+        Retrieve column metadata for ESO catalogues.
+
+        This method builds and executes an ADQL query to obtain metadata for columns
+        (such as column name, UCD, datatype, description, and unit) for the specified
+        catalogue collections or tables.
+
+        Parameters
+        ----------
+        collections : str or list of str, optional
+            A collection name or list of collection names to filter the column metadata.
+        tables : str or list of str, optional
+            A table name or list of table names to filter the column metadata.
+        verbose : bool, optional
+            If True, prints the generated ADQL query. Default is False.
+
+        Returns
+        -------
+        Table
+            An Astropy Table containing the column metadata.
+        """
+        clean_collections = _is_collection_list_at_eso(self, collections)
+        clean_tables = _is_table_list_at_eso(self, tables)
+        query = _create_query_all_columns(clean_collections, clean_tables)
+        if verbose:
+            print("Query:\n", query)
+        table = self._run_query_tap(query, type_of_query='sync', maxrec=self.ROW_LIMIT)
+        return table
+
+    def query_catalogues(self, collections: Union[str, List[str]] = None, tables: Union[str, List[str]] = None,
+                         columns: Union[str, List[str]] = None, type_of_query: str = 'sync',
+                         all_versions: bool = False, maxrec: Optional[int] = None, verbose: bool = False,
+                         conditions_dict: Optional[Dict] = None, top: Optional[int] = None,
+                         order_by: Optional[str] = None, order: str = 'ascending') -> Union[Table, List[Table]]:
+        """
+        Query specific ESO catalogues with flexible filtering and output options.
+
+        This method allows you to execute a customized query against one or more ESO catalogues.
+        You can filter by collection(s) or table(s), select specific columns, apply additional
+        conditions, limit the number of returned rows, and control the sort order. The query can be
+        executed in synchronous or asynchronous mode.
+
+        Parameters
+        ----------
+        collections : str or list of str, optional
+            A collection name or list of collection names to limit the query.
+        tables : str or list of str, optional
+            A table name or list of table names to limit the query.
+        columns : str or list of str, optional
+            The column name(s) to be retrieved. If None, all columns will be selected.
+        type_of_query : str, optional
+            The query mode, either 'sync' for synchronous or 'async' for asynchronous.
+            Default is 'sync'.
+        all_versions : bool, optional
+            If True, includes obsolete catalogue versions; otherwise, only the latest version is considered.
+            Default is False.
+        maxrec : int, optional
+            The maximum number of records to retrieve for each catalogue. If not provided, uses ROW_LIMIT.
+        verbose : bool, optional
+            If True, prints the generated query for each catalogue.
+        conditions_dict : dict, optional
+            A dictionary of additional conditions to be applied to the query.
+        top : int, optional
+            If provided, limits the query to the top N rows.
+        order_by : str, optional
+            The column name by which to order the results.
+        order : str, optional
+            The order direction ('ascending' or 'descending'). Default is 'ascending'.
+
+        Returns
+        -------
+        Table or list of Table
+            If only one catalogue is queried, returns an Astropy Table; otherwise,
+            returns a list of Tables, one per queried catalogue. A summary is printed
+            for each catalogue indicating the number of returned entries versus the total.
+        """
+        clean_tables = _is_collection_and_table_list_at_eso(self, collections, tables, all_versions=all_versions)
+        totrec_list = _get_catalogue_length_from_tables(self, clean_tables, maxrec=None, all_versions=all_versions)
+        maxrec_list = [maxrec] * len(totrec_list) if maxrec is not None else [self.ROW_LIMIT] * len(totrec_list)
+        list_of_catalogues = []
+        for table_name, totrec, maxrec_val in zip(clean_tables, totrec_list, maxrec_list):
+            valid_columns = _is_column_list_in_catalogues(self, columns, tables=table_name)
+            query = _create_query_catalogues(table_name, valid_columns, conditions_dict, order_by, order, top)
+            if verbose:
+                print("Query:\n", query)
+            result_table = self._run_query_tap(query, type_of_query=type_of_query, maxrec=maxrec_val)
+            list_of_catalogues.append(result_table)
+            print(f"The query to {table_name} returned {len(result_table)} entries out of {totrec} (with a limit set to maxrec={maxrec_val})")
+        if len(list_of_catalogues) == 0:
+            return None
+        elif len(list_of_catalogues) == 1:
+            return list_of_catalogues[0]
+        else:
+            return list_of_catalogues
+# ---------------------------------------------------------------------------
+# Instantiate the public ESO object
+# ---------------------------------------------------------------------------
 Eso = EsoClass()
