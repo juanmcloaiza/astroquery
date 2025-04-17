@@ -38,7 +38,7 @@ from ..exceptions import RemoteServiceError, LoginError, \
 from ..query import QueryWithLogin
 from ..utils import schema
 from .utils import py2adql, _split_str_as_list_of_str, \
-    adql_sanitize_val, are_coords_valid, reorder_columns, \
+    adql_sanitize_val, reorder_columns, _validate_arguments, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
 
@@ -51,7 +51,7 @@ class CalSelectorError(Exception):
     """
 
 
-class AuthInfo:
+class _AuthInfo:
     def __init__(self, username: str, token: str):
         self.username = username
         self.token = token
@@ -62,12 +62,12 @@ class AuthInfo:
         decoded_token = base64.b64decode(self.token.split(".")[1] + "==")
         return int(json.loads(decoded_token)['exp'])
 
-    def expired(self) -> bool:
+    def _expired(self) -> bool:
         # we anticipate the expiration time by 10 minutes to avoid issues
         return time.time() > self.expiration_time - 600
 
 
-class EsoNames:
+class _EsoNames:
     raw_table = "dbo.raw"
     phase3_table = "ivoa.ObsCore"
     raw_instruments_column = "instrument"
@@ -75,6 +75,9 @@ class EsoNames:
 
     @staticmethod
     def ist_table(instrument_name):
+        """
+        Returns the name of the Instrument Specific Table
+        """
         return f"ist.{instrument_name}"
 
     apex_quicklooks_table = ist_table.__func__("apex_quicklooks")
@@ -101,6 +104,9 @@ def unlimited_max_rec(func):
 
 
 class EsoClass(QueryWithLogin):
+    """
+    Class to query and download data from the ESO Archive
+    """
     USERNAME = conf.username
     CALSELECTOR_URL = "https://archive.eso.org/calselector/v1/associations"
     DOWNLOAD_URL = "https://dataportal.eso.org/dataPortal/file/"
@@ -109,13 +115,16 @@ class EsoClass(QueryWithLogin):
 
     def __init__(self):
         super().__init__()
-        self._auth_info: Optional[AuthInfo] = None
+        self._auth_info: Optional[_AuthInfo] = None
         self._hash = None
         self._maxrec = None
         self.maxrec = conf.row_limit
 
     @property
     def maxrec(self):
+        """
+        Number of records at which queries are truncated
+        """
         return self._maxrec
 
     @maxrec.setter
@@ -152,7 +161,7 @@ class EsoClass(QueryWithLogin):
         response = self._request('GET', self.AUTH_URL, params=url_params)
         if response.status_code == 200:
             token = json.loads(response.content)['id_token']
-            self._auth_info = AuthInfo(username=username, token=token)
+            self._auth_info = _AuthInfo(username=username, token=token)
             log.info("Authentication successful!")
             return True
         else:
@@ -208,11 +217,11 @@ class EsoClass(QueryWithLogin):
         return self._authenticate(username=username, password=password)
 
     def _get_auth_header(self) -> Dict[str, str]:
-        if self._auth_info and self._auth_info.expired():
+        if self._auth_info and self._auth_info._expired():
             raise LoginError(
                 "Authentication token has expired! Please log in again."
             )
-        if self._auth_info and not self._auth_info.expired():
+        if self._auth_info and not self._auth_info._expired():
             return {'Authorization': 'Bearer ' + self._auth_info.token}
         else:
             return {}
@@ -325,8 +334,8 @@ class EsoClass(QueryWithLogin):
         l_res = list(res)
 
         # Remove ist.apex_quicklooks, which is not actually a raw instrument
-        if EsoNames.apex_quicklooks_table in l_res:
-            l_res.remove(EsoNames.apex_quicklooks_table)
+        if _EsoNames.apex_quicklooks_table in l_res:
+            l_res.remove(_EsoNames.apex_quicklooks_table)
 
         l_res = list(map(lambda x: x.split(".")[1], l_res))
 
@@ -345,8 +354,8 @@ class EsoClass(QueryWithLogin):
             Deprecated - unused.
         """
         _ = cache  # We're aware about disregarding the argument
-        t = EsoNames.phase3_table
-        c = EsoNames.phase3_surveys_column
+        t = _EsoNames.phase3_table
+        c = _EsoNames.phase3_surveys_column
         query_str = f"select distinct {c} from {t}"
         res = list(self.query_tap_service(query_str)[c].data)
         return res
@@ -386,6 +395,7 @@ class EsoClass(QueryWithLogin):
             column_name: str,
             allowed_values: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -405,19 +415,9 @@ class EsoClass(QueryWithLogin):
             self._print_table_help(table_name)
             return
 
-        if (('box' in filters)
-            or ('coord1' in filters)
-                or ('coord2' in filters)):
-            message = ('box, coord1 and coord2 are deprecated; '
-                       'use cone_ra, cone_dec and cone_radius instead')
-            raise ValueError(message)
-
-        if not are_coords_valid(cone_ra, cone_dec, cone_radius):
-            message = ("Either all three (cone_ra, cone_dec, cone_radius) "
-                       "must be present or none of them.\n"
-                       "Values provided: "
-                       f"cone_ra = {cone_ra}, cone_dec = {cone_dec}, cone_radius = {cone_radius}")
-            raise ValueError(message)
+        _validate_arguments(filters,
+                            cone_ra, cone_dec, cone_radius,
+                            start_time, end_time)
 
         where_allowed_vals_strlist = []
         if allowed_values:
@@ -431,6 +431,7 @@ class EsoClass(QueryWithLogin):
         where_constraints = where_allowed_vals_strlist + where_constraints_strlist
         query = py2adql(table=table_name, columns=columns,
                         cone_ra=cone_ra, cone_dec=cone_dec, cone_radius=cone_radius,
+                        start_time=start_time, end_time=end_time,
                         where_constraints=where_constraints,
                         count_only=count_only,
                         top=top)
@@ -451,6 +452,7 @@ class EsoClass(QueryWithLogin):
             self,
             surveys: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -524,12 +526,13 @@ class EsoClass(QueryWithLogin):
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         c = column_filters if column_filters else {}
         kwargs = {**kwargs, **c}
-        t = self._query_on_allowed_values(table_name=EsoNames.phase3_table,
-                                          column_name=EsoNames.phase3_surveys_column,
+        t = self._query_on_allowed_values(table_name=_EsoNames.phase3_table,
+                                          column_name=_EsoNames.phase3_surveys_column,
                                           allowed_values=surveys,
                                           cone_ra=cone_ra,
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
+                                          start_time=start_time, end_time=end_time,
                                           columns=columns,
                                           top=top,
                                           count_only=count_only,
@@ -546,6 +549,7 @@ class EsoClass(QueryWithLogin):
             self,
             instruments: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -619,12 +623,13 @@ class EsoClass(QueryWithLogin):
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         c = column_filters if column_filters else {}
         kwargs = {**kwargs, **c}
-        t = self._query_on_allowed_values(table_name=EsoNames.raw_table,
-                                          column_name=EsoNames.raw_instruments_column,
+        t = self._query_on_allowed_values(table_name=_EsoNames.raw_table,
+                                          column_name=_EsoNames.raw_instruments_column,
                                           allowed_values=instruments,
                                           cone_ra=cone_ra,
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
+                                          start_time=start_time, end_time=end_time,
                                           columns=columns,
                                           top=top,
                                           count_only=count_only,
@@ -641,6 +646,7 @@ class EsoClass(QueryWithLogin):
             self,
             instrument: str, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -713,12 +719,13 @@ class EsoClass(QueryWithLogin):
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         c = column_filters if column_filters else {}
         kwargs = {**kwargs, **c}
-        t = self._query_on_allowed_values(table_name=EsoNames.ist_table(instrument),
+        t = self._query_on_allowed_values(table_name=_EsoNames.ist_table(instrument),
                                           column_name=None,
                                           allowed_values=None,
                                           cone_ra=cone_ra,
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
+                                          start_time=start_time, end_time=end_time,
                                           columns=columns,
                                           top=top,
                                           count_only=count_only,
@@ -1101,17 +1108,20 @@ class EsoClass(QueryWithLogin):
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         c = column_filters if column_filters else {}
         kwargs = {**kwargs, **c}
-        return self._query_on_allowed_values(table_name=EsoNames.apex_quicklooks_table,
-                                             column_name=EsoNames.apex_quicklooks_pid_column,
-                                             allowed_values=project_id,
-                                             cone_ra=None, cone_dec=None, cone_radius=None,
-                                             columns=columns,
-                                             top=top,
-                                             count_only=count_only,
-                                             query_str_only=query_str_only,
-                                             print_help=help,
-                                             authenticated=authenticated,
-                                             **kwargs)
+        t = self._query_on_allowed_values(table_name=_EsoNames.apex_quicklooks_table,
+                                          column_name=_EsoNames.apex_quicklooks_pid_column,
+                                          allowed_values=project_id,
+                                          cone_ra=None, cone_dec=None, cone_radius=None,
+                                          start_time=None, end_time=None,
+                                          columns=columns,
+                                          top=top,
+                                          count_only=count_only,
+                                          query_str_only=query_str_only,
+                                          print_help=help,
+                                          authenticated=authenticated,
+                                          **kwargs)
+        t = reorder_columns(t, DEFAULT_LEAD_COLS_RAW)
+        return t
 
 
 Eso = EsoClass()
