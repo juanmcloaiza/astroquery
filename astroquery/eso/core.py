@@ -38,7 +38,7 @@ from ..exceptions import RemoteServiceError, LoginError, \
 from ..query import QueryWithLogin
 from ..utils import schema
 from .utils import py2adql, _split_str_as_list_of_str, \
-    adql_sanitize_val, are_coords_valid, reorder_columns, \
+    adql_sanitize_val, reorder_columns, _validate_arguments, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
 
@@ -395,6 +395,7 @@ class EsoClass(QueryWithLogin):
             column_name: str,
             allowed_values: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -414,19 +415,9 @@ class EsoClass(QueryWithLogin):
             self._print_table_help(table_name)
             return
 
-        if (('box' in filters)
-            or ('coord1' in filters)
-                or ('coord2' in filters)):
-            message = ('box, coord1 and coord2 are deprecated; '
-                       'use cone_ra, cone_dec and cone_radius instead')
-            raise ValueError(message)
-
-        if not are_coords_valid(cone_ra, cone_dec, cone_radius):
-            message = ("Either all three (cone_ra, cone_dec, cone_radius) "
-                       "must be present or none of them.\n"
-                       "Values provided: "
-                       f"cone_ra = {cone_ra}, cone_dec = {cone_dec}, cone_radius = {cone_radius}")
-            raise ValueError(message)
+        _validate_arguments(filters,
+                            cone_ra, cone_dec, cone_radius,
+                            start_time, end_time)
 
         where_allowed_vals_strlist = []
         if allowed_values:
@@ -440,6 +431,7 @@ class EsoClass(QueryWithLogin):
         where_constraints = where_allowed_vals_strlist + where_constraints_strlist
         query = py2adql(table=table_name, columns=columns,
                         cone_ra=cone_ra, cone_dec=cone_dec, cone_radius=cone_radius,
+                        start_time=start_time, end_time=end_time,
                         where_constraints=where_constraints,
                         count_only=count_only,
                         top=top)
@@ -460,6 +452,7 @@ class EsoClass(QueryWithLogin):
             self,
             surveys: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -539,6 +532,7 @@ class EsoClass(QueryWithLogin):
                                           cone_ra=cone_ra,
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
+                                          start_time=start_time, end_time=end_time,
                                           columns=columns,
                                           top=top,
                                           count_only=count_only,
@@ -555,6 +549,7 @@ class EsoClass(QueryWithLogin):
             self,
             instruments: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -634,6 +629,7 @@ class EsoClass(QueryWithLogin):
                                           cone_ra=cone_ra,
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
+                                          start_time=start_time, end_time=end_time,
                                           columns=columns,
                                           top=top,
                                           count_only=count_only,
@@ -650,6 +646,7 @@ class EsoClass(QueryWithLogin):
             self,
             instrument: str, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             columns: Union[List, str] = None,
             top: int = None,
             count_only: bool = False,
@@ -728,6 +725,7 @@ class EsoClass(QueryWithLogin):
                                           cone_ra=cone_ra,
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
+                                          start_time=start_time, end_time=end_time,
                                           columns=columns,
                                           top=top,
                                           count_only=count_only,
@@ -1110,17 +1108,20 @@ class EsoClass(QueryWithLogin):
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         c = column_filters if column_filters else {}
         kwargs = {**kwargs, **c}
-        return self._query_on_allowed_values(table_name=_EsoNames.apex_quicklooks_table,
-                                             column_name=_EsoNames.apex_quicklooks_pid_column,
-                                             allowed_values=project_id,
-                                             cone_ra=None, cone_dec=None, cone_radius=None,
-                                             columns=columns,
-                                             top=top,
-                                             count_only=count_only,
-                                             query_str_only=query_str_only,
-                                             print_help=help,
-                                             authenticated=authenticated,
-                                             **kwargs)
+        t = self._query_on_allowed_values(table_name=_EsoNames.apex_quicklooks_table,
+                                          column_name=_EsoNames.apex_quicklooks_pid_column,
+                                          allowed_values=project_id,
+                                          cone_ra=None, cone_dec=None, cone_radius=None,
+                                          start_time=None, end_time=None,
+                                          columns=columns,
+                                          top=top,
+                                          count_only=count_only,
+                                          query_str_only=query_str_only,
+                                          print_help=help,
+                                          authenticated=authenticated,
+                                          **kwargs)
+        t = reorder_columns(t, DEFAULT_LEAD_COLS_RAW)
+        return t
 
 
 Eso = EsoClass()

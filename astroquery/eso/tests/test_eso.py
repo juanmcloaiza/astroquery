@@ -27,6 +27,10 @@ EXPECTED_MAXREC = 1000
 MONKEYPATCH_TABLE_LENGTH = 50
 
 
+def test_py2adql():
+    return _test_py2adql()
+
+
 def data_path(filename):
     return os.path.join(DATA_DIR, filename)
 
@@ -370,7 +374,7 @@ def test_reorder_columns(monkeypatch):
     assert not_a_table_1 == not_a_table_2
 
 
-def test_py2adql():
+def _test_py2adql():
     """
     #  Example query:
     #
@@ -502,6 +506,17 @@ def test_py2adql():
                 order_by='snr', order_by_desc=False,
                 cone_ra=1.23, cone_dec=2.34, cone_radius=3.45, top=5)
     expected_query = 'select top 5 ' + columns + ' from ' + table + \
+        ' where ' + and_c_list[0] + ' and ' + and_c_list[1] + ' and ' + and_c_list[2] + \
+        ' and intersects(s_region, circle(\'ICRS\', 1.23, 2.34, 3.45))=1' + \
+        " order by snr asc"
+
+    # start_time, end_time
+    q = py2adql(columns=columns, table=table,
+                where_constraints=and_c_list,
+                order_by='snr', order_by_desc=False,
+                cone_ra=1.23, cone_dec=2.34, cone_radius=3.45,
+                start_time='2008-01-01 12:00:00', end_time='2009-01-01 12:00:00')
+    expected_query = 'select ' + columns + ' from ' + table + \
         ' where ' + and_c_list[0] + ' and ' + and_c_list[1] + ' and ' + and_c_list[2] + \
         ' and intersects(s_region, circle(\'ICRS\', 1.23, 2.34, 3.45))=1' + \
         " order by snr asc"

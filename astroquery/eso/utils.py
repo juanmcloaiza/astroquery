@@ -2,6 +2,7 @@
 utils.py: helper functions for the astropy.eso module
 """
 
+from datetime import datetime
 from typing import Union, List, Optional
 from astropy.table import Table
 
@@ -49,9 +50,9 @@ def adql_sanitize_val(x):
     return retval
 
 
-def are_coords_valid(ra: Optional[float] = None,
-                     dec: Optional[float] = None,
-                     radius: Optional[float] = None) -> bool:
+def _are_coords_valid(ra: Optional[float] = None,
+                      dec: Optional[float] = None,
+                      radius: Optional[float] = None) -> bool:
     """
     ra, dec, radius must be either present all three
     or absent all three. Moreover, they must be float
@@ -64,8 +65,64 @@ def are_coords_valid(ra: Optional[float] = None,
     return is_a_valid_combination
 
 
+def _is_timestamp_valid(timestamp: Optional[str] = None) -> bool:
+    """
+    Timestamp must be in the format 2025-12-31
+    """
+    if timestamp is None:
+        return True
+
+    if not isinstance(timestamp, str):
+        return False
+
+    my_format = "%Y-%m-%d %H:%M:%S"
+    is_valid = False
+    try:
+        is_valid = bool(datetime.strptime(timestamp, my_format))
+    except ValueError:
+        is_valid = False
+
+    return is_valid
+
+
+def _validate_arguments(filters: Optional[dict] = None,
+                        cone_ra: Optional[float] = None,
+                        cone_dec: Optional[float] = None,
+                        cone_radius: Optional[float] = None,
+                        start_time: Optional[str] = None,
+                        end_time: Optional[str] = None):
+    if (('box' in filters)
+        or ('coord1' in filters)
+            or ('coord2' in filters)):
+        message = ('box, coord1 and coord2 are deprecated; '
+                   'use cone_ra, cone_dec and cone_radius instead')
+        raise ValueError(message)
+
+    if not _are_coords_valid(cone_ra, cone_dec, cone_radius):
+        message = ("Either all three (cone_ra, cone_dec, cone_radius) "
+                   "are present or none of them.\n"
+                   "Values provided: "
+                   f"cone_ra = {cone_ra}, cone_dec = {cone_dec}, cone_radius = {cone_radius}")
+        raise ValueError(message)
+
+    if not _is_timestamp_valid(start_time) or not _is_timestamp_valid(end_time):
+        message = ("start_time and end_time must be in the format "
+                   "YYYY-MM-DDThh:mm:ss\n"
+                   "Values provided: "
+                   f"start_time = {start_time}, end_time = {end_time}")
+        raise ValueError(message)
+
+    if (start_time is not None) and (end_time is not None):
+        if not (start_time < end_time):
+            message = ("start_time must be earlier to end_time\n"
+                       "Values provided: "
+                       f"start_time = {start_time}, end_time = {end_time}")
+            raise ValueError(message)
+
+
 def py2adql(table: str, columns: Union[List, str] = None,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+            start_time: Optional[str] = None, end_time: Optional[str] = None,
             where_constraints: List = None,
             order_by: str = '', order_by_desc=True,
             count_only: bool = False, top: int = None):
