@@ -387,19 +387,20 @@ class EsoClass(QueryWithLogin):
             allowed_values: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
             columns: Union[List, str] = None,
+            column_filters: Optional[Dict[str, str]],
             top: int = None,
             count_only: bool = False,
             query_str_only: bool = False,
             print_help: bool = False,
             authenticated: bool = False,
-            **kwargs) -> Union[astropy.table.Table, int, str]:
+    ) -> Union[astropy.table.Table, int, str]:
         """
         Query instrument- or collection-specific data contained in the ESO archive.
          - instrument-specific data is raw
          - collection-specific data is processed
         """
         columns = columns or []
-        filters = {**dict(kwargs)}
+        filters = column_filters if column_filters else {}
 
         if print_help:
             self._print_table_help(table_name)
@@ -427,7 +428,7 @@ class EsoClass(QueryWithLogin):
             allowed_values = list(map(lambda x: f"'{x.strip()}'", allowed_values))
             where_allowed_vals_strlist = [f"{column_name} in (" + ", ".join(allowed_values) + ")"]
 
-        where_constraints_strlist = [f"{k} = {adql_sanitize_val(v)}" for k, v in filters.items()]
+        where_constraints_strlist = [f"{k} {adql_sanitize_val(v)}" for k, v in filters.items()]
         where_constraints = where_allowed_vals_strlist + where_constraints_strlist
         query = py2adql(table=table_name, columns=columns,
                         cone_ra=cone_ra, cone_dec=cone_dec, cone_radius=cone_radius,
@@ -452,14 +453,14 @@ class EsoClass(QueryWithLogin):
             surveys: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
             columns: Union[List, str] = None,
+            column_filters: Optional[dict] = None,
             top: int = None,
             count_only: bool = False,
             query_str_only: bool = False,
             help: bool = False,
             authenticated: bool = False,
-            column_filters: Optional[dict] = None,
             open_form: bool = False, cache: bool = False,
-            **kwargs) -> Union[astropy.table.Table, int, str]:
+    ) -> Union[astropy.table.Table, int, str]:
         """
         Query survey Phase 3 data contained in the ESO archive.
 
@@ -522,8 +523,7 @@ class EsoClass(QueryWithLogin):
         :rtype: `~astropy.table.Table`, `str`, `int`, or `None`
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
-        c = column_filters if column_filters else {}
-        kwargs = {**kwargs, **c}
+        column_filters = column_filters if column_filters else {}
         t = self._query_on_allowed_values(table_name=EsoNames.phase3_table,
                                           column_name=EsoNames.phase3_surveys_column,
                                           allowed_values=surveys,
@@ -531,12 +531,13 @@ class EsoClass(QueryWithLogin):
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
                                           columns=columns,
+                                          column_filters=column_filters,
                                           top=top,
                                           count_only=count_only,
                                           query_str_only=query_str_only,
                                           print_help=help,
                                           authenticated=authenticated,
-                                          **kwargs)
+                                          )
         t = reorder_columns(t, DEFAULT_LEAD_COLS_PHASE3)
         return t
 
@@ -547,14 +548,14 @@ class EsoClass(QueryWithLogin):
             instruments: Union[List[str], str] = None, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
             columns: Union[List, str] = None,
+            column_filters: Optional[dict] = None,
             top: int = None,
             count_only: bool = False,
             query_str_only: bool = False,
             help: bool = False,
             authenticated: bool = False,
-            column_filters: Optional[dict] = None,
             open_form: bool = False, cache: bool = False,
-            **kwargs) -> Union[astropy.table.Table, int, str]:
+    ) -> Union[astropy.table.Table, int, str]:
         """
         Query raw data from all instruments contained in the ESO archive.
 
@@ -617,8 +618,7 @@ class EsoClass(QueryWithLogin):
         :rtype: `~astropy.table.Table`, `str`, `int`, or `None`
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
-        c = column_filters if column_filters else {}
-        kwargs = {**kwargs, **c}
+        column_filters = column_filters if column_filters else {}
         t = self._query_on_allowed_values(table_name=EsoNames.raw_table,
                                           column_name=EsoNames.raw_instruments_column,
                                           allowed_values=instruments,
@@ -626,12 +626,13 @@ class EsoClass(QueryWithLogin):
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
                                           columns=columns,
+                                          column_filters=column_filters,
                                           top=top,
                                           count_only=count_only,
                                           query_str_only=query_str_only,
                                           print_help=help,
                                           authenticated=authenticated,
-                                          **kwargs)
+                                          )
         t = reorder_columns(t, DEFAULT_LEAD_COLS_RAW)
         return t
 
@@ -642,14 +643,14 @@ class EsoClass(QueryWithLogin):
             instrument: str, *,
             cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
             columns: Union[List, str] = None,
+            column_filters: Optional[dict] = None,
             top: int = None,
             count_only: bool = False,
             query_str_only: bool = False,
             help: bool = False,
             authenticated: bool = False,
-            column_filters: Optional[dict] = None,
             open_form: bool = False, cache: bool = False,
-            **kwargs) -> Union[astropy.table.Table, int, str]:
+    ) -> Union[astropy.table.Table, int, str]:
         """
         Query instrument-specific raw data contained in the ESO archive.
 
@@ -711,8 +712,7 @@ class EsoClass(QueryWithLogin):
         :rtype: `~astropy.table.Table`, `str`, `int`, or `None`
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
-        c = column_filters if column_filters else {}
-        kwargs = {**kwargs, **c}
+        column_filters = column_filters if column_filters else {}
         t = self._query_on_allowed_values(table_name=EsoNames.ist_table(instrument),
                                           column_name=None,
                                           allowed_values=None,
@@ -720,12 +720,12 @@ class EsoClass(QueryWithLogin):
                                           cone_dec=cone_dec,
                                           cone_radius=cone_radius,
                                           columns=columns,
+                                          column_filters=column_filters,
                                           top=top,
                                           count_only=count_only,
                                           query_str_only=query_str_only,
                                           print_help=help,
-                                          authenticated=authenticated,
-                                          **kwargs)
+                                          authenticated=authenticated)
         t = reorder_columns(t, DEFAULT_LEAD_COLS_RAW)
         return t
 
@@ -1038,14 +1038,14 @@ class EsoClass(QueryWithLogin):
     def query_apex_quicklooks(self,
                               project_id: Union[List[str], str] = None, *,
                               columns: Union[List, str] = None,
+                              column_filters: Optional[dict] = None,
                               top: int = None,
                               count_only: bool = False,
                               query_str_only: bool = False,
                               help: bool = False,
                               authenticated: bool = False,
-                              column_filters: Optional[dict] = None,
                               open_form: bool = False, cache: bool = False,
-                              **kwargs) -> Union[astropy.table.Table, int, str]:
+                              ) -> Union[astropy.table.Table, int, str]:
         """
         APEX data are distributed with quicklook products identified with a
         different name than other ESO products.  This query tool searches by
@@ -1099,19 +1099,18 @@ class EsoClass(QueryWithLogin):
 
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
-        c = column_filters if column_filters else {}
-        kwargs = {**kwargs, **c}
+        column_filters = column_filters if column_filters else {}
         return self._query_on_allowed_values(table_name=EsoNames.apex_quicklooks_table,
                                              column_name=EsoNames.apex_quicklooks_pid_column,
                                              allowed_values=project_id,
                                              cone_ra=None, cone_dec=None, cone_radius=None,
                                              columns=columns,
+                                             column_filters=column_filters,
                                              top=top,
                                              count_only=count_only,
                                              query_str_only=query_str_only,
                                              print_help=help,
-                                             authenticated=authenticated,
-                                             **kwargs)
+                                             authenticated=authenticated)
 
 
 Eso = EsoClass()

@@ -124,7 +124,11 @@ def test_sinfoni_sgr_a_star(monkeypatch):
     # monkeypatch instructions from https://pytest.org/latest/monkeypatch.html
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    result = eso.query_instrument('sinfoni', target='SGRA')
+    result = eso.query_instrument('sinfoni',
+                                  column_filters={
+                                      'target': "= 'SGRA'"
+                                  }
+                                  )
     # test all results are there and the expected target is present
     assert len(result) == MONKEYPATCH_TABLE_LENGTH
     assert 'SGRA' in result['target']
@@ -134,7 +138,11 @@ def test_main_sgr_a_star(monkeypatch):
     # monkeypatch instructions from https://pytest.org/latest/monkeypatch.html
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    result = eso.query_main(target='SGR A', object='SGR A')
+    result = eso.query_main(
+        column_filters={
+            'target': "= 'SGR A'",
+            'object': "= 'SGR A'"
+        })
     # test all results are there and the expected target is present
     assert len(result) == 23
     assert 'SGR A' in result['object']
@@ -270,10 +278,19 @@ def test_adql_sanitize_val():
     # select [...] where x_int = 9
     # select [...] where x_str = '9'
 
-    assert adql_sanitize_val("ciao") == "'ciao'"
-    assert adql_sanitize_val(1) == "1"
-    assert adql_sanitize_val(1.5) == "1.5"
-    assert adql_sanitize_val("1.5") == "'1.5'"
+    assert adql_sanitize_val(1) == "= 1"
+    assert adql_sanitize_val(1.5) == "= 1.5"
+    assert adql_sanitize_val("ciao") == "= 'ciao'"
+    assert adql_sanitize_val("1.5") == "= '1.5'"
+
+    assert adql_sanitize_val("< 5") == "< 5"
+    assert adql_sanitize_val("> 1.23") == "> 1.23"
+    assert adql_sanitize_val("< '5'") == "< '5'"
+    assert adql_sanitize_val("> '1.23'") == "> '1.23'"
+    assert adql_sanitize_val("like '%John%'") == "like '%John%'"
+    assert adql_sanitize_val("in ('apple', 'mango', 'orange')") == "in ('apple', 'mango', 'orange')"
+    assert adql_sanitize_val("in (1, 2, 3)") == "in (1, 2, 3)"
+    assert adql_sanitize_val('= SGR A') == "= SGR A"  # This will raise an exception elsewhere
 
 
 def test_maxrec():
@@ -337,7 +354,11 @@ def test_issue_table_length_warnings():
 def test_reorder_columns(monkeypatch):
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    table = eso.query_main(target='SGR A', object='SGR A')
+    table = eso.query_main(
+        column_filters={
+            'target': "= 'SGR A'",
+            'object': "= 'SGR A'"}
+    )
     names_before = table.colnames[:]
     table2 = reorder_columns(table)
     names_after = table2.colnames[:]

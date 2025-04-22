@@ -41,11 +41,35 @@ def reorder_columns(table: Table,
     return table
 
 
-def adql_sanitize_val(x):
+def adql_sanitize_val(v):
     """
-    If the value is a string, put it into single quotes
+    Expected values for v are:
+    "= 5",
+    "< 3.14",
+    "like '%John Doe%'"
+    "in ('item1', 'item2', 'item3')
+
+    So the logic is:
+    "<operator> SPACE <value>"
+
+    If no SPACE, assume the <operator> to be "="
     """
-    retval = f"'{x}'" if isinstance(x, str) else f"{x}"
+    operator = "="
+    value = None
+
+    if not isinstance(v, str):
+        operator = "="
+        value = f"{v}"
+    else:
+        # v is a string - can it be split?
+        o_v = v.split(" ", 1)
+        operator, value = ["=", f"'{o_v[0]}'"] if len(o_v) < 2 else o_v
+        # try:
+        # except ValueError as e:
+        #    raise ValueError("Perhaps you missed the ADQL operator in the filter string?"
+        #                     f"Filter string provided: {v}") from e
+
+    retval = f"{operator} {value}"
     return retval
 
 
