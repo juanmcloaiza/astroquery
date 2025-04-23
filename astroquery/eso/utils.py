@@ -43,62 +43,29 @@ def reorder_columns(table: Table,
 
 def adql_sanitize_op_val(op_val):
     """
-    Expected values for v are:
-    "= 5",
-    "< 3.14",
-    "like '%John Doe%'"
-    "in ('item1', 'item2', 'item3')
+    Expected input:
+        "= 5", "< 3.14", "like '%John Doe%'", "in ('item1', 'item2')"
+        or just string values like "ESO", "ALMA", "'ALMA'", "John Doe"
 
-    So the logic is:
-    "<operator> SPACE <value>"
-
-    If no SPACE, assume the <operator> to be "="
+    Logic:
+        returns "<operator> <value>" if operator is provided.
+        Defaults to "= <value>" otherwise.
     """
-    operator = "="
-    value = None
-    supported_operators = [
-        "=",
-        ">",
-        "<",
-        "like",
-        "between",
-        "in",  # "in[*SPACE*]"
-    ]
+    supported_operators = {"=", ">", "<", "<=", ">=", "!=", "like", "between", "in"}
 
     if not isinstance(op_val, str):
-        # op_val is a float, an int or something...
-        operator = "="
-        value = f"{op_val}" # no single quotes
-    else:
-        # op_val is a string, for example:
-        # "John Doe", "ESO", "> 5", "<= '2024-12-31'"
+        return f"= {op_val}"
 
-        op_val = op_val.strip()
-        o_v = op_val.split(" ", 1)
-        if len(o_v) < 2:
-            # the string cannot be split, like "ESO", "HUBBLE", "'HUBBLE'"
-            # the operator is "=", and the value is the string itself
-            operator, value = "=", f"'{o_v[0]}'"
-        else:
-            # There are two substrings
-            if o_v[0].lower() in supported_operators:
-                # The first substring is an operator
-                operator = o_v[0]
-                # The second substring must provide its own single quotes
-                value = o_v[1] 
-            else:
-                # No operator present, we use the default, "="
-                operator = "="
+    op_val = op_val.strip()
+    parts = op_val.split(" ", 1)
 
-                # Since it is a simple string, we provide the single quotes
-                # if not already included
-                if op_val[0] == op_val[-1] == "'":
-                    value = op_val
-                else:
-                    value = f"'{op_val}'"
+    if len(parts) == 2 and parts[0].lower() in supported_operators:
+        operator, value = parts
+        return f"{operator} {value}"
 
-    retval = f"{operator} {value}"
-    return retval
+    # Default case: no operator. Assign "="
+    value = op_val if (op_val.startswith("'") and op_val.endswith("'")) else f"'{op_val}'"
+    return f"= {value}"
 
 
 def are_coords_valid(ra: Optional[float] = None,
