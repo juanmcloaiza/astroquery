@@ -126,7 +126,7 @@ def test_sinfoni_sgr_a_star(monkeypatch):
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
     result = eso.query_instrument('sinfoni',
                                   column_filters={
-                                      'target': "= 'SGRA'"
+                                      'target': "SGRA"
                                   }
                                   )
     # test all results are there and the expected target is present
@@ -140,8 +140,8 @@ def test_main_sgr_a_star(monkeypatch):
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
     result = eso.query_main(
         column_filters={
-            'target': "= 'SGR A'",
-            'object': "= 'SGR A'"
+            'target': "SGR A",
+            'object': "SGR A"
         })
     # test all results are there and the expected target is present
     assert len(result) == 23
@@ -290,6 +290,7 @@ def test_adql_sanitize_val():
     assert adql_sanitize_op_val("1.5 ") == "= '1.5'"
     assert adql_sanitize_op_val(" a string with spaces ") == "= 'a string with spaces'"
     assert adql_sanitize_op_val("SGR A") == "= 'SGR A'"
+    assert adql_sanitize_op_val("'SGR A'") == "= 'SGR A'"
 
     assert adql_sanitize_op_val("< 5") == "< 5"
     assert adql_sanitize_op_val("> 1.23") == "> 1.23"
@@ -375,8 +376,8 @@ def test_reorder_columns(monkeypatch):
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
     table = eso.query_main(
         column_filters={
-            'target': "= 'SGR A'",
-            'object': "= 'SGR A'"}
+            'target': "SGR A",
+            'object': "SGR A"}
     )
     names_before = table.colnames[:]
     table2 = reorder_columns(table)
