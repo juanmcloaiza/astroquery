@@ -41,7 +41,7 @@ def reorder_columns(table: Table,
     return table
 
 
-def adql_sanitize_val(v):
+def adql_sanitize_op_val(op_val):
     """
     Expected values for v are:
     "= 5",
@@ -56,18 +56,46 @@ def adql_sanitize_val(v):
     """
     operator = "="
     value = None
+    supported_operators = [
+        "=",
+        ">",
+        "<",
+        "like",
+        "between",
+        "in",  # "in[*SPACE*]"
+    ]
 
-    if not isinstance(v, str):
+    if not isinstance(op_val, str):
+        # op_val is a float, an int or something...
         operator = "="
-        value = f"{v}"
+        value = f"{op_val}" # no single quotes
     else:
-        # v is a string - can it be split?
-        o_v = v.split(" ", 1)
-        operator, value = ["=", f"'{o_v[0]}'"] if len(o_v) < 2 else o_v
-        # try:
-        # except ValueError as e:
-        #    raise ValueError("Perhaps you missed the ADQL operator in the filter string?"
-        #                     f"Filter string provided: {v}") from e
+        # op_val is a string, for example:
+        # "John Doe", "ESO", "> 5", "<= '2024-12-31'"
+
+        op_val = op_val.strip()
+        o_v = op_val.split(" ", 1)
+        if len(o_v) < 2:
+            # the string cannot be split, like "ESO", "HUBBLE", "'HUBBLE'"
+            # the operator is "=", and the value is the string itself
+            operator, value = "=", f"'{o_v[0]}'"
+        else:
+            # There are two substrings
+            if o_v[0].lower() in supported_operators:
+                # The first substring is an operator
+                operator = o_v[0]
+                # The second substring must provide its own single quotes
+                value = o_v[1] 
+            else:
+                # No operator present, we use the default, "="
+                operator = "="
+
+                # Since it is a simple string, we provide the single quotes
+                # if not already included
+                if op_val[0] == op_val[-1] == "'":
+                    value = op_val
+                else:
+                    value = f"'{op_val}'"
 
     retval = f"{operator} {value}"
     return retval

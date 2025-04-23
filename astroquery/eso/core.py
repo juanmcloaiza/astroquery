@@ -38,7 +38,7 @@ from ..exceptions import RemoteServiceError, LoginError, \
 from ..query import QueryWithLogin
 from ..utils import schema
 from .utils import py2adql, _split_str_as_list_of_str, \
-    adql_sanitize_val, are_coords_valid, reorder_columns, \
+    adql_sanitize_op_val, are_coords_valid, reorder_columns, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
 
@@ -428,7 +428,7 @@ class EsoClass(QueryWithLogin):
             allowed_values = list(map(lambda x: f"'{x.strip()}'", allowed_values))
             where_allowed_vals_strlist = [f"{column_name} in (" + ", ".join(allowed_values) + ")"]
 
-        where_constraints_strlist = [f"{k} {adql_sanitize_val(v)}" for k, v in filters.items()]
+        where_constraints_strlist = [f"{k} {adql_sanitize_op_val(v)}" for k, v in filters.items()]
         where_constraints = where_allowed_vals_strlist + where_constraints_strlist
         query = py2adql(table=table_name, columns=columns,
                         cone_ra=cone_ra, cone_dec=cone_dec, cone_radius=cone_radius,

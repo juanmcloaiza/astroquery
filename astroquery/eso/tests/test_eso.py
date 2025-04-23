@@ -18,7 +18,7 @@ from astropy.table import Table
 
 from astroquery.utils.mocks import MockResponse
 from ...eso import Eso
-from ...eso.utils import py2adql, adql_sanitize_val, reorder_columns, \
+from ...eso.utils import py2adql, adql_sanitize_op_val, reorder_columns, \
     DEFAULT_LEAD_COLS_RAW
 from ...exceptions import NoResultsWarning, MaxResultsWarning
 
@@ -278,19 +278,38 @@ def test_adql_sanitize_val():
     # select [...] where x_int = 9
     # select [...] where x_str = '9'
 
-    assert adql_sanitize_val(1) == "= 1"
-    assert adql_sanitize_val(1.5) == "= 1.5"
-    assert adql_sanitize_val("ciao") == "= 'ciao'"
-    assert adql_sanitize_val("1.5") == "= '1.5'"
+    assert adql_sanitize_op_val(1) == "= 1"
+    assert adql_sanitize_op_val(1.5) == "= 1.5"
+    assert adql_sanitize_op_val(None) == "= None"
 
-    assert adql_sanitize_val("< 5") == "< 5"
-    assert adql_sanitize_val("> 1.23") == "> 1.23"
-    assert adql_sanitize_val("< '5'") == "< '5'"
-    assert adql_sanitize_val("> '1.23'") == "> '1.23'"
-    assert adql_sanitize_val("like '%John%'") == "like '%John%'"
-    assert adql_sanitize_val("in ('apple', 'mango', 'orange')") == "in ('apple', 'mango', 'orange')"
-    assert adql_sanitize_val("in (1, 2, 3)") == "in (1, 2, 3)"
-    assert adql_sanitize_val('= SGR A') == "= SGR A"  # This will raise an exception elsewhere
+    assert adql_sanitize_op_val("ciao") == "= 'ciao'"
+    assert adql_sanitize_op_val("1.5") == "= '1.5'"
+    assert adql_sanitize_op_val("ciao  ") == "= 'ciao'"
+    assert adql_sanitize_op_val("  ciao") == "= 'ciao'"
+    assert adql_sanitize_op_val("  ciao  ") == "= 'ciao'"
+    assert adql_sanitize_op_val("1.5 ") == "= '1.5'"
+    assert adql_sanitize_op_val(" a string with spaces ") == "= 'a string with spaces'"
+    assert adql_sanitize_op_val("SGR A") == "= 'SGR A'"
+
+    assert adql_sanitize_op_val("< 5") == "< 5"
+    assert adql_sanitize_op_val("> 1.23") == "> 1.23"
+    assert adql_sanitize_op_val("< '5'") == "< '5'"
+    assert adql_sanitize_op_val("> '1.23'") == "> '1.23'"
+    assert adql_sanitize_op_val("like '%John%'") == "like '%John%'"
+    assert adql_sanitize_op_val("in ('apple', 'mango', 'orange')") == "in ('apple', 'mango', 'orange')"
+    assert adql_sanitize_op_val("in (1, 2, 3)") == "in (1, 2, 3)"
+
+    # These are actual strings, with no operator, so they translate to "= 'some string'"
+    assert adql_sanitize_op_val("'like %John%'") == "= 'like %John%'"
+    assert adql_sanitize_op_val("'= something'") == "= '= something'"
+    assert adql_sanitize_op_val("'> 5'") == "= '> 5'"
+    assert adql_sanitize_op_val("' > 1.23 '") == "= ' > 1.23 '"
+
+    # These cases shouldn't be handled.
+    # They have an operator, but the adql after the operator is ill formed
+    # Let the error be thrown by the query function itself
+    assert adql_sanitize_op_val("like %John%") == "like %John%" # This will raise an exception elsewhere
+    assert adql_sanitize_op_val('= SGR A') == "= SGR A"  # This will raise an exception elsewhere
 
 
 def test_maxrec():
