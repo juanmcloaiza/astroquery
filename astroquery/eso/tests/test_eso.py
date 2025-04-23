@@ -297,7 +297,8 @@ def test_adql_sanitize_val():
     assert adql_sanitize_op_val("< '5'") == "< '5'"
     assert adql_sanitize_op_val("> '1.23'") == "> '1.23'"
     assert adql_sanitize_op_val("like '%John%'") == "like '%John%'"
-    assert adql_sanitize_op_val("in ('apple', 'mango', 'orange')") == "in ('apple', 'mango', 'orange')"
+    assert adql_sanitize_op_val(
+        "in ('apple', 'mango', 'orange')") == "in ('apple', 'mango', 'orange')"
     assert adql_sanitize_op_val("in (1, 2, 3)") == "in (1, 2, 3)"
 
     # These are actual strings, with no operator, so they translate to "= 'some string'"
@@ -309,8 +310,10 @@ def test_adql_sanitize_val():
     # These cases shouldn't be handled.
     # They have an operator, but the adql after the operator is ill formed
     # Let the error be thrown by the query function itself
-    assert adql_sanitize_op_val("like %John%") == "like %John%" # This will raise an exception elsewhere
-    assert adql_sanitize_op_val('= SGR A') == "= SGR A"  # This will raise an exception elsewhere
+    assert adql_sanitize_op_val(
+        "like %John%") == "like %John%"  # This will raise an exception elsewhere
+    assert adql_sanitize_op_val(
+        '= SGR A') == "= SGR A"  # This will raise an exception elsewhere
 
 
 def test_maxrec():
