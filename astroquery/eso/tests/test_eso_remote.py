@@ -177,7 +177,7 @@ class TestEso:
                                              "multi_ob, filter, s_pixel_scale, instrument_name"),
                                     column_filters={
                                         'calib_level': "= 3",
-                                        'multi_ob': "like 'M'"}
+                                        'multi_ob': "like '%M%'"}
                                     )
 
         result2 = eso.query_surveys("sphere, vegas",
@@ -318,8 +318,8 @@ class TestEso:
         with pytest.warns(MaxResultsWarning):
             result = eso.query_main(
                 column_filters={
-                    'target': "= 'SGR A'",
-                    'object': "= 'SGR A'"}
+                    'target': "SGR A",
+                    'object': "SGR A"}
             )
 
         assert len(result) == 5
