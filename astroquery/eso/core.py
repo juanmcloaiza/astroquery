@@ -37,8 +37,7 @@ from ..exceptions import RemoteServiceError, LoginError, \
     NoResultsWarning, MaxResultsWarning
 from ..query import QueryWithLogin
 from ..utils import schema
-from .utils import py2adql, _split_str_as_list_of_str, \
-    adql_sanitize_op_val, raise_if_coords_not_valid, reorder_columns, \
+from .utils import raise_if_coords_not_valid, reorder_columns, \
     raise_if_has_deprecated_keys, _build_adql_query, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
