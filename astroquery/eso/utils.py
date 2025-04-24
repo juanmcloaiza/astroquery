@@ -1,12 +1,34 @@
 """
 utils.py: helper functions for the astropy.eso module
 """
-
+from dataclasses import dataclass
 from typing import Dict, List, Optional, Union
 from astropy.table import Table
 
 DEFAULT_LEAD_COLS_RAW = ['object', 'ra', 'dec', 'dp_id', 'date_obs', 'prog_id']
 DEFAULT_LEAD_COLS_PHASE3 = ['target_name', 's_ra', 's_dec', 'dp_id', 'date_obs', 'proposal_id']
+
+
+@dataclass
+class _UserParams:
+    """
+    Parameters set by the user
+    """
+    table_name: str
+    column_name: str = None
+    allowed_values: Union[List[str], str] = None
+    cone_ra: float = None
+    cone_dec: float = None
+    cone_radius: float = None
+    columns: Union[List, str] = None
+    column_filters: Dict[str, str] = None
+    top: int = None
+    order_by: str = ''
+    order_by_desc: bool = True
+    count_only: bool = False
+    query_str_only: bool = False
+    print_help: bool = False
+    authenticated: bool = False
 
 
 def _split_str_as_list_of_str(column_str: str):
@@ -37,44 +59,25 @@ def raise_if_has_deprecated_keys(filters: Optional[Dict[str, str]]) -> bool:
         )
 
 
-def _format_allowed_values(column_name: str, allowed_values: Union[List[str], str]) -> str:
-    if isinstance(allowed_values, str):
-        allowed_values = _split_str_as_list_of_str(allowed_values)
-    quoted_values = [f"'{v.strip()}'" for v in allowed_values]
-    return f"{column_name} in ({', '.join(quoted_values)})"
-
-
-def _build_adql_query(
-        table_name: str,
-        columns: Union[List, str],
+def _build_where_constraints(
         column_name: str,
         allowed_values: Union[List[str], str],
-        filters: Dict[str, str],
-        cone_ra: float,
-        cone_dec: float,
-        cone_radius: float,
-        count_only: bool,
-        top: int
-) -> str:
-    where_constraints = []
+        column_filters: Dict[str, str]) -> str:
+    def _format_helper(av):
+        if isinstance(av, str):
+            av = _split_str_as_list_of_str(av)
+        quoted_values = [f"'{v.strip()}'" for v in av]
+        return f"{column_name} in ({', '.join(quoted_values)})"
 
+    column_filters = column_filters or {}
+    where_constraints = []
     if allowed_values:
-        where_constraints.append(_format_allowed_values(column_name, allowed_values))
+        where_constraints.append(_format_helper(allowed_values))
 
     where_constraints += [
-        f"{k} {adql_sanitize_op_val(v)}" for k, v in filters.items()
+        f"{k} {_adql_sanitize_op_val(v)}" for k, v in column_filters.items()
     ]
-
-    return py2adql(
-        table=table_name,
-        columns=columns,
-        cone_ra=cone_ra,
-        cone_dec=cone_dec,
-        cone_radius=cone_radius,
-        where_constraints=where_constraints,
-        count_only=count_only,
-        top=top
-    )
+    return where_constraints
 
 
 def reorder_columns(table: Table,
@@ -101,7 +104,7 @@ def reorder_columns(table: Table,
     return table
 
 
-def adql_sanitize_op_val(op_val):
+def _adql_sanitize_op_val(op_val):
     """
     Expected input:
         "= 5", "< 3.14", "like '%John Doe%'", "in ('item1', 'item2')"
@@ -148,45 +151,45 @@ def raise_if_coords_not_valid(cone_ra: Optional[float] = None,
         )
 
 
-def py2adql(table: str, columns: Union[List, str] = None,
-            cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
-            where_constraints: List = None,
-            order_by: str = '', order_by_desc=True,
-            count_only: bool = False, top: int = None):
+def _py2adql(user_params: _UserParams) -> str:
     """
     Return the adql string corresponding to the parameters passed
     See adql examples at https://archive.eso.org/tap_obs/examples
     """
+    up = user_params
+    query_string = None
+    columns = up.columns or []
+
     # We assume the coordinates passed are valid
     where_circle = []
-    if cone_radius is not None:
+    if up.cone_radius is not None:
         where_circle += [
-            f'intersects(s_region, circle(\'ICRS\', {cone_ra}, {cone_dec}, {cone_radius}))=1']
+            'intersects(s_region, circle(\'ICRS\', '
+            f'{up.cone_ra}, {up.cone_dec}, {up.cone_radius}))=1']
 
-    # Initialize / validate
-    query_string = None
-    # do not modify the original list
-    wc = [] if where_constraints is None else where_constraints[:]
-    wc += where_circle
+    wc = _build_where_constraints(up.column_name,
+                                  up.allowed_values,
+                                  up.column_filters) + where_circle
+
     if isinstance(columns, str):
         columns = _split_str_as_list_of_str(columns)
     if columns is None or len(columns) < 1:
         columns = ['*']
-    if count_only:
+    if up.count_only:
         columns = ['count(*)']
 
     # Build the query
-    query_string = ', '.join(columns) + ' from ' + table
+    query_string = ', '.join(columns) + ' from ' + up.table_name
     if len(wc) > 0:
         where_string = ' where ' + ' and '.join(wc)
         query_string += where_string
 
-    if len(order_by) > 0:
-        order_string = ' order by ' + order_by + (' desc ' if order_by_desc else ' asc ')
+    if len(up.order_by) > 0:
+        order_string = ' order by ' + up.order_by + (' desc ' if up.order_by_desc else ' asc ')
         query_string += order_string
 
-    if top is not None:
-        query_string = f"select top {top} " + query_string
+    if up.top is not None:
+        query_string = f"select top {up.top} " + query_string
     else:
         query_string = "select " + query_string
 

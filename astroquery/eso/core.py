@@ -37,8 +37,8 @@ from ..exceptions import RemoteServiceError, LoginError, \
     NoResultsWarning, MaxResultsWarning
 from ..query import QueryWithLogin
 from ..utils import schema
-from .utils import raise_if_coords_not_valid, reorder_columns, \
-    raise_if_has_deprecated_keys, _build_adql_query, \
+from .utils import _UserParams, raise_if_coords_not_valid, reorder_columns, \
+    raise_if_has_deprecated_keys, _py2adql, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
 
@@ -382,47 +382,25 @@ class EsoClass(QueryWithLogin):
 
     def _query_on_allowed_values(
         self,
-        table_name: str,
-        column_name: str,
-        allowed_values: Union[List[str], str] = None, *,
-        cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
-        columns: Union[List, str] = None,
-        column_filters: Optional[Dict[str, str]],
-        top: int = None,
-        count_only: bool = False,
-        query_str_only: bool = False,
-        print_help: bool = False,
-        authenticated: bool = False,
+        user_params: _UserParams
     ) -> Union[astropy.table.Table, int, str]:
-        columns = columns or []
-        filters = column_filters or {}
+        up = user_params  # shorthand
 
-        if print_help:
-            self._print_table_help(table_name)
+        if up.print_help:
+            self._print_table_help(up.table_name)
             return
 
-        raise_if_has_deprecated_keys(column_filters)
+        raise_if_has_deprecated_keys(up.column_filters)
 
-        raise_if_coords_not_valid(cone_ra, cone_dec, cone_radius)
+        raise_if_coords_not_valid(up.cone_ra, up.cone_dec, up.cone_radius)
 
-        query = _build_adql_query(
-            table_name=table_name,
-            columns=columns,
-            column_name=column_name,
-            allowed_values=allowed_values,
-            filters=filters,
-            cone_ra=cone_ra,
-            cone_dec=cone_dec,
-            cone_radius=cone_radius,
-            count_only=count_only,
-            top=top
-        )
+        query = _py2adql(up)
 
-        if query_str_only:
+        if up.query_str_only:
             return query
 
-        ret_table = self.query_tap_service(query_str=query, authenticated=authenticated)
-        return list(ret_table[0].values())[0] if count_only else ret_table
+        ret_table = self.query_tap_service(query_str=query, authenticated=up.authenticated)
+        return list(ret_table[0].values())[0] if up.count_only else ret_table
 
     @deprecated_renamed_argument(('open_form', 'cache'), (None, None),
                                  since=['0.4.11', '0.4.11'])
@@ -502,20 +480,21 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        t = self._query_on_allowed_values(table_name=EsoNames.phase3_table,
-                                          column_name=EsoNames.phase3_surveys_column,
-                                          allowed_values=surveys,
-                                          cone_ra=cone_ra,
-                                          cone_dec=cone_dec,
-                                          cone_radius=cone_radius,
-                                          columns=columns,
-                                          column_filters=column_filters,
-                                          top=top,
-                                          count_only=count_only,
-                                          query_str_only=query_str_only,
-                                          print_help=help,
-                                          authenticated=authenticated,
-                                          )
+        up = _UserParams(table_name=EsoNames.phase3_table,
+                         column_name=EsoNames.phase3_surveys_column,
+                         allowed_values=surveys,
+                         cone_ra=cone_ra,
+                         cone_dec=cone_dec,
+                         cone_radius=cone_radius,
+                         columns=columns,
+                         column_filters=column_filters,
+                         top=top,
+                         count_only=count_only,
+                         query_str_only=query_str_only,
+                         print_help=help,
+                         authenticated=authenticated,
+                         )
+        t = self._query_on_allowed_values(user_params=up)
         t = reorder_columns(t, DEFAULT_LEAD_COLS_PHASE3)
         return t
 
@@ -597,20 +576,21 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        t = self._query_on_allowed_values(table_name=EsoNames.raw_table,
-                                          column_name=EsoNames.raw_instruments_column,
-                                          allowed_values=instruments,
-                                          cone_ra=cone_ra,
-                                          cone_dec=cone_dec,
-                                          cone_radius=cone_radius,
-                                          columns=columns,
-                                          column_filters=column_filters,
-                                          top=top,
-                                          count_only=count_only,
-                                          query_str_only=query_str_only,
-                                          print_help=help,
-                                          authenticated=authenticated,
-                                          )
+        up = _UserParams(table_name=EsoNames.raw_table,
+                         column_name=EsoNames.raw_instruments_column,
+                         allowed_values=instruments,
+                         cone_ra=cone_ra,
+                         cone_dec=cone_dec,
+                         cone_radius=cone_radius,
+                         columns=columns,
+                         column_filters=column_filters,
+                         top=top,
+                         count_only=count_only,
+                         query_str_only=query_str_only,
+                         print_help=help,
+                         authenticated=authenticated,
+                         )
+        t = self._query_on_allowed_values(up)
         t = reorder_columns(t, DEFAULT_LEAD_COLS_RAW)
         return t
 
@@ -691,19 +671,20 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        t = self._query_on_allowed_values(table_name=EsoNames.ist_table(instrument),
-                                          column_name=None,
-                                          allowed_values=None,
-                                          cone_ra=cone_ra,
-                                          cone_dec=cone_dec,
-                                          cone_radius=cone_radius,
-                                          columns=columns,
-                                          column_filters=column_filters,
-                                          top=top,
-                                          count_only=count_only,
-                                          query_str_only=query_str_only,
-                                          print_help=help,
-                                          authenticated=authenticated)
+        up = _UserParams(table_name=EsoNames.ist_table(instrument),
+                         column_name=None,
+                         allowed_values=None,
+                         cone_ra=cone_ra,
+                         cone_dec=cone_dec,
+                         cone_radius=cone_radius,
+                         columns=columns,
+                         column_filters=column_filters,
+                         top=top,
+                         count_only=count_only,
+                         query_str_only=query_str_only,
+                         print_help=help,
+                         authenticated=authenticated)
+        t = self._query_on_allowed_values(up)
         t = reorder_columns(t, DEFAULT_LEAD_COLS_RAW)
         return t
 
@@ -1078,17 +1059,18 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        return self._query_on_allowed_values(table_name=EsoNames.apex_quicklooks_table,
-                                             column_name=EsoNames.apex_quicklooks_pid_column,
-                                             allowed_values=project_id,
-                                             cone_ra=None, cone_dec=None, cone_radius=None,
-                                             columns=columns,
-                                             column_filters=column_filters,
-                                             top=top,
-                                             count_only=count_only,
-                                             query_str_only=query_str_only,
-                                             print_help=help,
-                                             authenticated=authenticated)
+        up = _UserParams(table_name=EsoNames.apex_quicklooks_table,
+                         column_name=EsoNames.apex_quicklooks_pid_column,
+                         allowed_values=project_id,
+                         cone_ra=None, cone_dec=None, cone_radius=None,
+                         columns=columns,
+                         column_filters=column_filters,
+                         top=top,
+                         count_only=count_only,
+                         query_str_only=query_str_only,
+                         print_help=help,
+                         authenticated=authenticated)
+        return self._query_on_allowed_values(up)
 
 
 Eso = EsoClass()
