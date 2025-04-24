@@ -31,10 +31,10 @@ def raise_if_has_deprecated_keys(filters: Optional[Dict[str, str]]) -> bool:
         raise ValueError(
             "stime and etime are deprecated; "
             "use instead exp_time, together with '<', '>', 'between'\n"
-            "Examples:\n"
-            "\t column_filters = {'exp_time': '< 2024-01-01'}"
-            "\t column_filters = {'exp_time': '> 2023-01-01'}"
-            "\t column_filters = {'exp_time': between '2023-01-01' and '2024-01-01'}"
+            "\tExamples:\n"
+            "\t\tcolumn_filters = {'exp_time': '< 2024-01-01'}\n"
+            "\t\tcolumn_filters = {'exp_time': '> 2023-01-01'}\n"
+            "\t\tcolumn_filters = {'exp_time': between '2023-01-01' and '2024-01-01'}\n"
         )
 
 
