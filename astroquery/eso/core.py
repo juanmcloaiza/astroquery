@@ -38,7 +38,8 @@ from ..exceptions import RemoteServiceError, LoginError, \
 from ..query import QueryWithLogin
 from ..utils import schema
 from .utils import py2adql, _split_str_as_list_of_str, \
-    adql_sanitize_op_val, are_coords_valid, reorder_columns, \
+    adql_sanitize_op_val, raise_if_coords_not_valid, reorder_columns, \
+    raise_if_has_deprecated_keys, _build_adql_query, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
 
@@ -381,70 +382,48 @@ class EsoClass(QueryWithLogin):
         astropy.conf.max_width = m_
 
     def _query_on_allowed_values(
-            self,
-            table_name: str,
-            column_name: str,
-            allowed_values: Union[List[str], str] = None, *,
-            cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
-            columns: Union[List, str] = None,
-            column_filters: Optional[Dict[str, str]],
-            top: int = None,
-            count_only: bool = False,
-            query_str_only: bool = False,
-            print_help: bool = False,
-            authenticated: bool = False,
+        self,
+        table_name: str,
+        column_name: str,
+        allowed_values: Union[List[str], str] = None, *,
+        cone_ra: float = None, cone_dec: float = None, cone_radius: float = None,
+        columns: Union[List, str] = None,
+        column_filters: Optional[Dict[str, str]],
+        top: int = None,
+        count_only: bool = False,
+        query_str_only: bool = False,
+        print_help: bool = False,
+        authenticated: bool = False,
     ) -> Union[astropy.table.Table, int, str]:
-        """
-        Query instrument- or collection-specific data contained in the ESO archive.
-         - instrument-specific data is raw
-         - collection-specific data is processed
-        """
         columns = columns or []
-        filters = column_filters if column_filters else {}
+        filters = column_filters or {}
 
         if print_help:
             self._print_table_help(table_name)
             return
 
-        if (('box' in filters)
-            or ('coord1' in filters)
-                or ('coord2' in filters)):
-            message = ('box, coord1 and coord2 are deprecated; '
-                       'use cone_ra, cone_dec and cone_radius instead')
-            raise ValueError(message)
+        raise_if_has_deprecated_keys(column_filters)
 
-        if not are_coords_valid(cone_ra, cone_dec, cone_radius):
-            message = ("Either all three (cone_ra, cone_dec, cone_radius) "
-                       "must be present or none of them.\n"
-                       "Values provided: "
-                       f"cone_ra = {cone_ra}, cone_dec = {cone_dec}, cone_radius = {cone_radius}")
-            raise ValueError(message)
+        raise_if_coords_not_valid(cone_ra, cone_dec, cone_radius)
 
-        where_allowed_vals_strlist = []
-        if allowed_values:
-            if isinstance(allowed_values, str):
-                allowed_values = _split_str_as_list_of_str(allowed_values)
-
-            allowed_values = list(map(lambda x: f"'{x.strip()}'", allowed_values))
-            where_allowed_vals_strlist = [f"{column_name} in (" + ", ".join(allowed_values) + ")"]
-
-        where_constraints_strlist = [f"{k} {adql_sanitize_op_val(v)}" for k, v in filters.items()]
-        where_constraints = where_allowed_vals_strlist + where_constraints_strlist
-        query = py2adql(table=table_name, columns=columns,
-                        cone_ra=cone_ra, cone_dec=cone_dec, cone_radius=cone_radius,
-                        where_constraints=where_constraints,
-                        count_only=count_only,
-                        top=top)
+        query = _build_adql_query(
+            table_name=table_name,
+            columns=columns,
+            column_name=column_name,
+            allowed_values=allowed_values,
+            filters=filters,
+            cone_ra=cone_ra,
+            cone_dec=cone_dec,
+            cone_radius=cone_radius,
+            count_only=count_only,
+            top=top
+        )
 
         if query_str_only:
-            return query  # string
+            return query
 
-        retval = self.query_tap_service(query_str=query,
-                                        authenticated=authenticated)  # table
-        if count_only:
-            retval = list(retval[0].values())[0]  # int
-
-        return retval
+        ret_table = self.query_tap_service(query_str=query, authenticated=authenticated)
+        return list(ret_table[0].values())[0] if count_only else ret_table
 
     @deprecated_renamed_argument(('open_form', 'cache'), (None, None),
                                  since=['0.4.11', '0.4.11'])

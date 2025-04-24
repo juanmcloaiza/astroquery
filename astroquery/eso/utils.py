@@ -2,7 +2,7 @@
 utils.py: helper functions for the astropy.eso module
 """
 
-from typing import Union, List, Optional
+from typing import Dict, List, Optional, Union
 from astropy.table import Table
 
 DEFAULT_LEAD_COLS_RAW = ['object', 'ra', 'dec', 'dp_id', 'date_obs', 'prog_id']
@@ -15,6 +15,67 @@ def _split_str_as_list_of_str(column_str: str):
     else:
         column_list = list(map(lambda x: x.strip(), column_str.split(',')))
     return column_list
+
+
+def raise_if_has_deprecated_keys(filters: Optional[Dict[str, str]]) -> bool:
+    if not filters:
+        return
+
+    if any(k in filters for k in {"box", "coord1", "coord2"}):
+        raise ValueError(
+            "box, coord1 and coord2 are deprecated; "
+            "use cone_ra, cone_dec and cone_radius instead"
+        )
+
+    if any(k in filters for k in {"etime", "stime"}):
+        raise ValueError(
+            "stime and etime are deprecated; "
+            "use instead exp_time, together with '<', '>', 'between'\n"
+            "Examples:\n"
+            "\t column_filters = {'exp_time': '< 2024-01-01'}"
+            "\t column_filters = {'exp_time': '> 2023-01-01'}"
+            "\t column_filters = {'exp_time': between '2023-01-01' and '2024-01-01'}"
+        )
+
+
+def _format_allowed_values(column_name: str, allowed_values: Union[List[str], str]) -> str:
+    if isinstance(allowed_values, str):
+        allowed_values = _split_str_as_list_of_str(allowed_values)
+    quoted_values = [f"'{v.strip()}'" for v in allowed_values]
+    return f"{column_name} in ({', '.join(quoted_values)})"
+
+
+def _build_adql_query(
+        table_name: str,
+        columns: Union[List, str],
+        column_name: str,
+        allowed_values: Union[List[str], str],
+        filters: Dict[str, str],
+        cone_ra: float,
+        cone_dec: float,
+        cone_radius: float,
+        count_only: bool,
+        top: int
+) -> str:
+    where_constraints = []
+
+    if allowed_values:
+        where_constraints.append(_format_allowed_values(column_name, allowed_values))
+
+    where_constraints += [
+        f"{k} {adql_sanitize_op_val(v)}" for k, v in filters.items()
+    ]
+
+    return py2adql(
+        table=table_name,
+        columns=columns,
+        cone_ra=cone_ra,
+        cone_dec=cone_dec,
+        cone_radius=cone_radius,
+        where_constraints=where_constraints,
+        count_only=count_only,
+        top=top
+    )
 
 
 def reorder_columns(table: Table,
@@ -68,19 +129,24 @@ def adql_sanitize_op_val(op_val):
     return f"= {value}"
 
 
-def are_coords_valid(ra: Optional[float] = None,
-                     dec: Optional[float] = None,
-                     radius: Optional[float] = None) -> bool:
+def raise_if_coords_not_valid(cone_ra: Optional[float] = None,
+                              cone_dec: Optional[float] = None,
+                              cone_radius: Optional[float] = None) -> bool:
     """
     ra, dec, radius must be either present all three
     or absent all three. Moreover, they must be float
     """
-    are_all_none = (ra is None) and (dec is None) and (radius is None)
-    are_all_float = isinstance(ra, (float, int)) and \
-        isinstance(dec, (float, int)) and \
-        isinstance(radius, (float, int))
+    are_all_none = (cone_ra is None) and (cone_dec is None) and (cone_radius is None)
+    are_all_float = isinstance(cone_ra, (float, int)) and \
+        isinstance(cone_dec, (float, int)) and \
+        isinstance(cone_radius, (float, int))
     is_a_valid_combination = are_all_none or are_all_float
-    return is_a_valid_combination
+    if not is_a_valid_combination:
+        raise ValueError(
+            "Either all three (cone_ra, cone_dec, cone_radius) must be present or none.\n"
+            "Values provided:\n"
+            f"\tcone_ra = {cone_ra}, cone_dec = {cone_dec}, cone_radius = {cone_radius}"
+        )
 
 
 def py2adql(table: str, columns: Union[List, str] = None,
