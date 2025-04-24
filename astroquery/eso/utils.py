@@ -122,6 +122,12 @@ def _adql_sanitize_op_val(op_val):
     op_val = op_val.strip()
     parts = op_val.split(" ", 1)
 
+    if len(parts) == 1:
+        for s in supported_operators:
+            if op_val.startswith(s):
+                operator, value = s, op_val.split(s, 1)[-1]
+                return f"{operator} {value}"
+
     if len(parts) == 2 and parts[0].lower() in supported_operators:
         operator, value = parts
         return f"{operator} {value}"

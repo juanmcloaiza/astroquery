@@ -293,6 +293,13 @@ def test_tap_url():
     ("in ('apple', 'mango', 'orange')", "in ('apple', 'mango', 'orange')"),
     ("in (1, 2, 3)", "in (1, 2, 3)"),
 
+    # Operator-based queries
+    ("<5", "< 5"),
+    (">1.23", "> 1.23"),
+    ("<'5'", "< '5'"),
+    (">'1.23'", "> '1.23'"),
+    ("like'%John%'", "like '%John%'"),
+
     # Strings that look like operators but should be treated as strings
     ("'like %John%'", "= 'like %John%'"),
     ("'= something'", "= '= something'"),
