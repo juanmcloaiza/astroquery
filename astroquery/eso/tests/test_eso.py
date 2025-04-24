@@ -271,50 +271,44 @@ def test_tap_url():
         os.environ[tap_url_env_var] = tmpvar
 
 
-def test_adql_sanitize_val():
-    # adql queries are themselves strings.
-    # field that are strings are surrounded by single quotes ('')
-    # This function sanitizes values so that the following queries
-    # are correctly written:
-    # select [...] where x_int = 9
-    # select [...] where x_str = '9'
+@pytest.mark.parametrize("input_val, expected", [
+    # Numeric values
+    (1, "= 1"),
+    (1.5, "= 1.5"),
+    (None, "= None"),
 
-    assert _adql_sanitize_op_val(1) == "= 1"
-    assert _adql_sanitize_op_val(1.5) == "= 1.5"
-    assert _adql_sanitize_op_val(None) == "= None"
+    # String values
+    ("ciao", "= 'ciao'"),
+    ("1.5", "= '1.5'"),
+    ("ciao  ", "= 'ciao'"),
+    ("  ciao", "= 'ciao'"),
+    ("  ciao  ", "= 'ciao'"),
+    ("1.5 ", "= '1.5'"),
+    (" a string with spaces ", "= 'a string with spaces'"),
+    ("SGR A", "= 'SGR A'"),
+    ("'SGR A'", "= 'SGR A'"),
 
-    assert _adql_sanitize_op_val("ciao") == "= 'ciao'"
-    assert _adql_sanitize_op_val("1.5") == "= '1.5'"
-    assert _adql_sanitize_op_val("ciao  ") == "= 'ciao'"
-    assert _adql_sanitize_op_val("  ciao") == "= 'ciao'"
-    assert _adql_sanitize_op_val("  ciao  ") == "= 'ciao'"
-    assert _adql_sanitize_op_val("1.5 ") == "= '1.5'"
-    assert _adql_sanitize_op_val(" a string with spaces ") == "= 'a string with spaces'"
-    assert _adql_sanitize_op_val("SGR A") == "= 'SGR A'"
-    assert _adql_sanitize_op_val("'SGR A'") == "= 'SGR A'"
+    # Operator-based queries
+    ("< 5", "< 5"),
+    ("> 1.23", "> 1.23"),
+    ("< '5'", "< '5'"),
+    ("> '1.23'", "> '1.23'"),
+    ("like '%John%'", "like '%John%'"),
+    ("in ('apple', 'mango', 'orange')", "in ('apple', 'mango', 'orange')"),
+    ("in (1, 2, 3)", "in (1, 2, 3)"),
 
-    assert _adql_sanitize_op_val("< 5") == "< 5"
-    assert _adql_sanitize_op_val("> 1.23") == "> 1.23"
-    assert _adql_sanitize_op_val("< '5'") == "< '5'"
-    assert _adql_sanitize_op_val("> '1.23'") == "> '1.23'"
-    assert _adql_sanitize_op_val("like '%John%'") == "like '%John%'"
-    assert _adql_sanitize_op_val(
-        "in ('apple', 'mango', 'orange')") == "in ('apple', 'mango', 'orange')"
-    assert _adql_sanitize_op_val("in (1, 2, 3)") == "in (1, 2, 3)"
+    # Strings that look like operators but should be treated as strings
+    ("'like %John%'", "= 'like %John%'"),
+    ("'= something'", "= '= something'"),
+    ("'> 5'", "= '> 5'"),
+    ("' > 1.23 '", "= ' > 1.23 '"),
 
-    # These are actual strings, with no operator, so they translate to "= 'some string'"
-    assert _adql_sanitize_op_val("'like %John%'") == "= 'like %John%'"
-    assert _adql_sanitize_op_val("'= something'") == "= '= something'"
-    assert _adql_sanitize_op_val("'> 5'") == "= '> 5'"
-    assert _adql_sanitize_op_val("' > 1.23 '") == "= ' > 1.23 '"
-
-    # These cases shouldn't be handled.
-    # They have an operator, but the adql after the operator is ill formed
-    # Let the error be thrown by the query function itself
-    assert _adql_sanitize_op_val(
-        "like %John%") == "like %John%"  # This will raise an exception elsewhere
-    assert _adql_sanitize_op_val(
-        '= SGR A') == "= SGR A"  # This will raise an exception elsewhere
+    # Ill-formed queries: not sanitized but expected to be passed through as-is
+    ("like %John%", "like %John%"),
+    ("= SGR A", "= SGR A"),
+])
+def test_adql_sanitize_op_val(input_val, expected):
+    assert _adql_sanitize_op_val(input_val) == expected
 
 
 def test_maxrec():
@@ -523,23 +517,23 @@ def test_reorder_columns(monkeypatch):
 ])
 def test_py2adql(params, expected):
     """
-    #  Example query:
-    #
-    #  SELECT
-    #      target_name, dp_id, s_ra, s_dec, t_exptime, em_min, em_max,
-    #      dataproduct_type, instrument_name, obstech, abmaglim,
-    #      proposal_id, obs_collection
-    #  FROM
-    #      ivoa.ObsCore
-    #  WHERE
-    #      intersects(s_region, circle('ICRS', 109.668246, -24.558700, 0.001389))=1
-    #  AND
-    #      dataproduct_type in ('spectrum')
-    #  AND
-    #      em_min>4.0e-7
-    #  AND
-    #      em_max<1.2e-6
-    #  ORDER BY SNR DESC
+    Tests that the ADQL query builder generates the expected query.
+
+    Example of typical adql query:
+
+        SELECT
+            target_name, dp_id, s_ra, s_dec, t_exptime, em_min, em_max,
+            dataproduct_type, instrument_name, obstech, abmaglim,
+            proposal_id, obs_collection
+        FROM
+            ivoa.ObsCore
+        WHERE
+            intersects(s_region, circle('ICRS', 109.668246, -24.558700, 0.001389)) = 1
+            AND dataproduct_type IN ('spectrum')
+            AND em_min > 4.0e-7
+            AND em_max < 1.2e-6
+        ORDER BY
+            em_min DESC
     """
     query = _py2adql(params)
     assert query == expected, f"Expected:\n{expected}\n\nGot:\n{query}\n"
