@@ -45,8 +45,6 @@ DATA_FILES = {
         },
     'ADQL':
         {
-            # TODO: Point the second query to an IST when the ISTs are available.
-            # TODO: Fix the apex query when the backend is available.
             "select * from ivoa.ObsCore where obs_collection in ('VVV') and "
             "intersects(s_region, circle('ICRS', 266.41681662, -29.00782497, 0.1775))=1":
             "query_coll_vvv_sgra.pickle",
@@ -61,8 +59,6 @@ DATA_FILES = {
 
             "select table_name from TAP_SCHEMA.tables where schema_name='ist' order by table_name":
             "query_list_instruments.pickle",
-
-            "APEX_QUERY_PLACEHOLDER": "query_apex_ql_5.pickle",
 
             "generic cached query":
             "fd303fa27993048bd2393af067fe5ceccf4817c288ce5c0b4343386f.pickle",
@@ -440,7 +436,8 @@ def test_reorder_columns(monkeypatch):
         table_name="galaxies",
         columns="name, ra, dec",
         cone_ra=150.1, cone_dec=2.3, cone_radius=0.1),
-     "select name, ra, dec from galaxies where intersects(s_region, circle('ICRS', 150.1, 2.3, 0.1))=1"),
+     "select name, ra, dec from galaxies where "
+     "intersects(s_region, circle('ICRS', 150.1, 2.3, 0.1))=1"),
 
     # With count_only
     (_UserParams(
@@ -464,7 +461,8 @@ def test_reorder_columns(monkeypatch):
         columns=["id", "instrument"],
         column_filters={"instrument": "in ('MUSE', 'UVES')", "t_exptime": "> 100"},
         order_by="t_exptime"),
-     "select id, instrument from beautiful.Stars where instrument in ('MUSE', 'UVES') and t_exptime > 100 order by t_exptime desc"),
+     "select id, instrument from beautiful.Stars where instrument in ('MUSE', 'UVES') "
+     "and t_exptime > 100 order by t_exptime desc"),
 
     # With all params 1
     (

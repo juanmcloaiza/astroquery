@@ -38,7 +38,7 @@ from ..exceptions import RemoteServiceError, LoginError, \
 from ..query import QueryWithLogin
 from ..utils import schema
 from .utils import _UserParams, raise_if_coords_not_valid, reorder_columns, \
-    raise_if_has_deprecated_keys, _py2adql, \
+    _raise_if_has_deprecated_keys, _py2adql, \
     DEFAULT_LEAD_COLS_PHASE3, DEFAULT_LEAD_COLS_RAW
 
 
@@ -51,7 +51,7 @@ class CalSelectorError(Exception):
     """
 
 
-class AuthInfo:
+class _AuthInfo:
     def __init__(self, username: str, token: str):
         self.username = username
         self.token = token
@@ -62,12 +62,12 @@ class AuthInfo:
         decoded_token = base64.b64decode(self.token.split(".")[1] + "==")
         return int(json.loads(decoded_token)['exp'])
 
-    def expired(self) -> bool:
+    def _expired(self) -> bool:
         # we anticipate the expiration time by 10 minutes to avoid issues
         return time.time() > self.expiration_time - 600
 
 
-class EsoNames:
+class _EsoNames:
     raw_table = "dbo.raw"
     phase3_table = "ivoa.ObsCore"
     raw_instruments_column = "instrument"
@@ -75,6 +75,9 @@ class EsoNames:
 
     @staticmethod
     def ist_table(instrument_name):
+        """
+        Returns the name of the instrument specific table (IST)
+        """
         return f"ist.{instrument_name}"
 
     apex_quicklooks_table = ist_table.__func__("apex_quicklooks")
@@ -101,6 +104,9 @@ def unlimited_max_rec(func):
 
 
 class EsoClass(QueryWithLogin):
+    """
+    User facing class to query the ESO archive
+    """
     USERNAME = conf.username
     CALSELECTOR_URL = "https://archive.eso.org/calselector/v1/associations"
     DOWNLOAD_URL = "https://dataportal.eso.org/dataPortal/file/"
@@ -109,13 +115,17 @@ class EsoClass(QueryWithLogin):
 
     def __init__(self):
         super().__init__()
-        self._auth_info: Optional[AuthInfo] = None
+        self._auth_info: Optional[_AuthInfo] = None
         self._hash = None
         self._maxrec = None
         self.maxrec = conf.row_limit
 
     @property
     def maxrec(self):
+        """
+        Getter of the maxrec attribute
+        Safeguard that truncates the number of records returned by a query
+        """
         return self._maxrec
 
     @maxrec.setter
@@ -152,7 +162,7 @@ class EsoClass(QueryWithLogin):
         response = self._request('GET', self.AUTH_URL, params=url_params)
         if response.status_code == 200:
             token = json.loads(response.content)['id_token']
-            self._auth_info = AuthInfo(username=username, token=token)
+            self._auth_info = _AuthInfo(username=username, token=token)
             log.info("Authentication successful!")
             return True
         else:
@@ -208,11 +218,11 @@ class EsoClass(QueryWithLogin):
         return self._authenticate(username=username, password=password)
 
     def _get_auth_header(self) -> Dict[str, str]:
-        if self._auth_info and self._auth_info.expired():
+        if self._auth_info and self._auth_info._expired():
             raise LoginError(
                 "Authentication token has expired! Please log in again."
             )
-        if self._auth_info and not self._auth_info.expired():
+        if self._auth_info and not self._auth_info._expired():
             return {'Authorization': 'Bearer ' + self._auth_info.token}
         else:
             return {}
@@ -325,8 +335,8 @@ class EsoClass(QueryWithLogin):
         l_res = list(res)
 
         # Remove ist.apex_quicklooks, which is not actually a raw instrument
-        if EsoNames.apex_quicklooks_table in l_res:
-            l_res.remove(EsoNames.apex_quicklooks_table)
+        if _EsoNames.apex_quicklooks_table in l_res:
+            l_res.remove(_EsoNames.apex_quicklooks_table)
 
         l_res = list(map(lambda x: x.split(".")[1], l_res))
 
@@ -345,8 +355,8 @@ class EsoClass(QueryWithLogin):
             Deprecated - unused.
         """
         _ = cache  # We're aware about disregarding the argument
-        t = EsoNames.phase3_table
-        c = EsoNames.phase3_surveys_column
+        t = _EsoNames.phase3_table
+        c = _EsoNames.phase3_surveys_column
         query_str = f"select distinct {c} from {t}"
         res = list(self.query_tap_service(query_str)[c].data)
         return res
@@ -390,7 +400,7 @@ class EsoClass(QueryWithLogin):
             self._print_table_help(up.table_name)
             return
 
-        raise_if_has_deprecated_keys(up.column_filters)
+        _raise_if_has_deprecated_keys(up.column_filters)
 
         raise_if_coords_not_valid(up.cone_ra, up.cone_dec, up.cone_radius)
 
@@ -480,8 +490,8 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        up = _UserParams(table_name=EsoNames.phase3_table,
-                         column_name=EsoNames.phase3_surveys_column,
+        up = _UserParams(table_name=_EsoNames.phase3_table,
+                         column_name=_EsoNames.phase3_surveys_column,
                          allowed_values=surveys,
                          cone_ra=cone_ra,
                          cone_dec=cone_dec,
@@ -576,8 +586,8 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        up = _UserParams(table_name=EsoNames.raw_table,
-                         column_name=EsoNames.raw_instruments_column,
+        up = _UserParams(table_name=_EsoNames.raw_table,
+                         column_name=_EsoNames.raw_instruments_column,
                          allowed_values=instruments,
                          cone_ra=cone_ra,
                          cone_dec=cone_dec,
@@ -671,7 +681,7 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        up = _UserParams(table_name=EsoNames.ist_table(instrument),
+        up = _UserParams(table_name=_EsoNames.ist_table(instrument),
                          column_name=None,
                          allowed_values=None,
                          cone_ra=cone_ra,
@@ -1059,8 +1069,8 @@ class EsoClass(QueryWithLogin):
         """
         _ = open_form, cache  # make explicit that we are aware these arguments are unused
         column_filters = column_filters if column_filters else {}
-        up = _UserParams(table_name=EsoNames.apex_quicklooks_table,
-                         column_name=EsoNames.apex_quicklooks_pid_column,
+        up = _UserParams(table_name=_EsoNames.apex_quicklooks_table,
+                         column_name=_EsoNames.apex_quicklooks_pid_column,
                          allowed_values=project_id,
                          cone_ra=None, cone_dec=None, cone_radius=None,
                          columns=columns,

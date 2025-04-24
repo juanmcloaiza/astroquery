@@ -39,17 +39,17 @@ def _split_str_as_list_of_str(column_str: str):
     return column_list
 
 
-def raise_if_has_deprecated_keys(filters: Optional[Dict[str, str]]) -> bool:
+def _raise_if_has_deprecated_keys(filters: Optional[Dict[str, str]]) -> bool:
     if not filters:
         return
 
-    if any(k in filters for k in {"box", "coord1", "coord2"}):
+    if any(k in filters for k in ("box", "coord1", "coord2")):
         raise ValueError(
             "box, coord1 and coord2 are deprecated; "
             "use cone_ra, cone_dec and cone_radius instead."
         )
 
-    if any(k in filters for k in {"etime", "stime"}):
+    if any(k in filters for k in ("etime", "stime")):
         raise ValueError(
             "'stime' and 'etime' are deprecated; "
             "use instead 'exp_time' together with '<', '>', 'between'. Examples:\n"
