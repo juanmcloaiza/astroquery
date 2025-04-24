@@ -486,7 +486,7 @@ def test_reorder_columns(monkeypatch):
                 "dataproduct_type": "in ('spectrum')"
             },
             top=100,
-            order_by="signal_to_noise",
+            order_by="em_min",
             order_by_desc=True,
             count_only=False,
             query_str_only=True,
@@ -494,7 +494,7 @@ def test_reorder_columns(monkeypatch):
         "select top 100 target_name, s_ra, s_dec, em_min, em_max from ivoa.ObsCore "
         "where em_min > 4e-7 and em_max < 1.2e-6 and dataproduct_type in ('spectrum') "
         "and intersects(s_region, circle('ICRS', 180.0, -45.0, 0.05))=1 "
-        "order by signal_to_noise desc"
+        "order by em_min desc"
     ),
 
     # With all params 2
@@ -511,15 +511,14 @@ def test_reorder_columns(monkeypatch):
                 "dataproduct_type": "in ('spectrum')"
             },
             top=100,
-            order_by="signal_to_noise",
+            order_by="em_min",
             order_by_desc=False,
             count_only=True,
             query_str_only=True,
         ),
         "select top 100 count(*) from ivoa.ObsCore "
         "where em_min > 4e-7 and em_max < 1.2e-6 and dataproduct_type in ('spectrum') "
-        "and intersects(s_region, circle('ICRS', 180.0, -45.0, 0.05))=1 "
-        "order by signal_to_noise asc"
+        "and intersects(s_region, circle('ICRS', 180.0, -45.0, 0.05))=1"
     ),
 ])
 def test_py2adql(params, expected):

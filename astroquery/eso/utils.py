@@ -184,7 +184,7 @@ def _py2adql(user_params: _UserParams) -> str:
         where_string = ' where ' + ' and '.join(wc)
         query_string += where_string
 
-    if len(up.order_by) > 0:
+    if len(up.order_by) > 0 and not up.count_only:
         order_string = ' order by ' + up.order_by + (' desc ' if up.order_by_desc else ' asc ')
         query_string += order_string
 
