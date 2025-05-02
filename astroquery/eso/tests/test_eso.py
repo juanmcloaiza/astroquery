@@ -13,19 +13,12 @@ import sys
 
 import pickle
 import pytest
-import pyvo
-from astropy.table import Table
 
 from astroquery.utils.mocks import MockResponse
 from ...eso import Eso
-from ...eso.utils import _UserParams, \
-    _py2adql, _adql_sanitize_op_val, reorder_columns, \
-    DEFAULT_LEAD_COLS_RAW
-from ...exceptions import NoResultsWarning, MaxResultsWarning
+from ...eso.utils import py2adql, read_table_from_file
 
 DATA_DIR = os.path.join(os.path.dirname(__file__), 'data')
-EXPECTED_MAXREC = 1000
-MONKEYPATCH_TABLE_LENGTH = 50
 
 
 def data_path(filename):
@@ -45,6 +38,8 @@ DATA_FILES = {
         },
     'ADQL':
         {
+            # TODO: Point the second query to an IST when the ISTs are available.
+            # TODO: Fix the apex query when the backend is available.
             "select * from ivoa.ObsCore where obs_collection in ('VVV') and "
             "intersects(s_region, circle('ICRS', 266.41681662, -29.00782497, 0.1775))=1":
             "query_coll_vvv_sgra.pickle",
@@ -60,18 +55,16 @@ DATA_FILES = {
             "select table_name from TAP_SCHEMA.tables where schema_name='ist' order by table_name":
             "query_list_instruments.pickle",
 
-            "generic cached query":
-            "fd303fa27993048bd2393af067fe5ceccf4817c288ce5c0b4343386f.pickle",
+            "APEX_QUERY_PLACEHOLDER": "query_apex_ql_5.pickle",
 
-            "query points to non table file":
-            "2031769bb0e68fb2816bf5680203e586eea71ca58b2694a71a428605.pickle"
+            "generic cached query": "fd303fa27993048bd2393af067fe5ceccf4817c288ce5c0b4343386f.pickle",
+
+            "query points to non table file": "2031769bb0e68fb2816bf5680203e586eea71ca58b2694a71a428605.pickle"
         }
 }
 
-TEST_COLLECTIONS = [
-    '081.C-0827', 'ADHOC', 'CAFFEINE', 'ENTROPY', 'GAIAESO', 'HARPS', 'INSPIRE', 'KIDS', 'ZCOSMOS']
-TEST_INSTRUMENTS = [
-    'amber', 'crires', 'espresso', 'fors1', 'giraffe', 'gravity', 'midi', 'xshooter']
+TEST_COLLECTIONS = ['081.C-0827', 'ADHOC', 'CAFFEINE', 'ENTROPY', 'GAIAESO', 'HARPS', 'INSPIRE', 'KIDS', 'ZCOSMOS']
+TEST_INSTRUMENTS = ['amber', 'crires', 'espresso', 'fors1', 'giraffe', 'gravity', 'midi', 'xshooter']
 
 
 def eso_request(request_type, url, **kwargs):
@@ -117,29 +110,21 @@ def calselector_request(url, **kwargs):
     return response
 
 
-def test_sinfoni_sgr_a_star(monkeypatch):
+def test_sinfoni_SgrAstar(monkeypatch):
     # monkeypatch instructions from https://pytest.org/latest/monkeypatch.html
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    result = eso.query_instrument('sinfoni',
-                                  column_filters={
-                                      'target': "SGRA"
-                                  }
-                                  )
+    result = eso.query_instrument('sinfoni', target='SGRA')
     # test all results are there and the expected target is present
-    assert len(result) == MONKEYPATCH_TABLE_LENGTH
+    assert len(result) == 50
     assert 'SGRA' in result['target']
 
 
-def test_main_sgr_a_star(monkeypatch):
+def test_main_SgrAstar(monkeypatch):
     # monkeypatch instructions from https://pytest.org/latest/monkeypatch.html
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    result = eso.query_main(
-        column_filters={
-            'target': "SGR A",
-            'object': "SGR A"
-        })
+    result = eso.query_main(target='SGR A', object='SGR A')
     # test all results are there and the expected target is present
     assert len(result) == 23
     assert 'SGR A' in result['object']
@@ -150,12 +135,12 @@ def test_vvv(monkeypatch):
     # monkeypatch instructions from https://pytest.org/latest/monkeypatch.html
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    result = eso.query_surveys(surveys='VVV',
-                               cone_ra=266.41681662, cone_dec=-29.00782497,
-                               cone_radius=0.1775,
-                               )
+    result = eso.query_collections(collections='VVV',
+                                   ra=266.41681662, dec=-29.00782497,
+                                   radius=0.1775,
+                                   )
     # test all results are there and the expected target is present
-    assert len(result) == MONKEYPATCH_TABLE_LENGTH
+    assert len(result) == 50
     assert 'target_name' in result.colnames
     assert 'b333' in result['target_name']
 
@@ -163,7 +148,7 @@ def test_vvv(monkeypatch):
 def test_list_collections(monkeypatch):
     eso = Eso()
     monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    saved_list = eso.list_surveys()
+    saved_list = eso.list_collections()
     assert isinstance(saved_list, list)
     assert set(TEST_COLLECTIONS) <= set(saved_list)
 
@@ -174,6 +159,17 @@ def test_list_instruments(monkeypatch):
     saved_list = eso.list_instruments()
     assert isinstance(saved_list, list)
     assert set(TEST_INSTRUMENTS) <= set(saved_list)
+
+
+def test_apex_quicklooks(monkeypatch):
+    eso = Eso()
+    monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
+    p_id = '095.F-9802'
+    table = eso.query_apex_quicklooks(prog_id=p_id, cache=True)
+
+    assert len(table) == 5
+    assert set(table['Release Date']) == {'2015-07-17', '2015-07-18',
+                                          '2015-09-15', '2015-09-18'}
 
 
 def test_authenticate(monkeypatch):
@@ -216,6 +212,30 @@ def test_cached_file():
     assert eso._find_cached_file("non_existent_filename") is False
 
 
+def test_from_cache():
+    query_str = "generic cached query"
+    filepath = os.path.join(DATA_DIR, DATA_FILES['ADQL'][query_str])
+    table_directly_from_file = read_table_from_file(filepath)
+    eso_instance = Eso()
+    eso_instance.cache_location = DATA_DIR
+
+    # Cached file does not exist
+    table_from_cache = eso_instance.from_cache(query_str="not cached query", cache_timeout=None)
+    assert table_from_cache is None
+
+    # File is expired
+    table_from_cache = eso_instance.from_cache(query_str=query_str, cache_timeout=0.01)
+    assert table_from_cache is None
+
+    # The file exists but is not a table:
+    table_from_cache = eso_instance.from_cache(query_str="query points to non table file", cache_timeout=None)
+    assert table_from_cache is None
+
+    # Getting a valid cached table
+    table_from_cache = eso_instance.from_cache(query_str=query_str, cache_timeout=None)
+    assert all(table_from_cache.values_equal(table_directly_from_file))
+
+
 def test_calselector(monkeypatch, tmp_path):
     # monkeypatch instructions from https://pytest.org/latest/monkeypatch.html
     eso = Eso()
@@ -224,7 +244,7 @@ def test_calselector(monkeypatch, tmp_path):
     monkeypatch.setattr(eso._session, 'post', calselector_request)
     result = eso.get_associated_files([dataset], savexml=True)
     assert isinstance(result, list)
-    assert len(result) == MONKEYPATCH_TABLE_LENGTH
+    assert len(result) == 50
     assert dataset not in result
 
 
@@ -241,13 +261,13 @@ def test_calselector_multipart(monkeypatch, tmp_path):
 
 
 def test_tap_url():
-    tap_url_env_var = "ESO_TAP_URL"
+    tap_url_env_var = "TAP_URL"
     tmpvar = None
     dev_url = "dev_url"
     prod_url = "https://archive.eso.org/tap_obs"
 
-    # ESO_TAP_URL shouldn't be set to start the test
     try:
+        # this shouldn't be set at this point
         tmpvar = os.environ[tap_url_env_var]
         del os.environ[tap_url_env_var]
     except KeyError:
@@ -255,294 +275,134 @@ def test_tap_url():
 
     eso_instance = Eso()
 
-    # ESO_TAP_URL not set
-    assert eso_instance._tap_url() == prod_url
+    # TAP URL not set and DEV False
+    eso_instance.USE_DEV_TAP = False
+    assert eso_instance.tap_url() == prod_url
 
-    # ESO_TAP_URL set
-    os.environ[tap_url_env_var] = dev_url
-    assert eso_instance._tap_url() == dev_url
+    # TAP URL not set and DEV True
+    eso_instance.USE_DEV_TAP = True
+    with pytest.raises(KeyError):
+        _ = eso_instance.tap_url()
+
+    os.environ["TAP_URL"] = dev_url
+    # TAP URL set and DEV True
+    eso_instance.USE_DEV_TAP = True
+    assert eso_instance.tap_url() == dev_url
+
+    # TAP URL set and DEV False
+    eso_instance.USE_DEV_TAP = False
+    assert eso_instance.tap_url() == prod_url
 
     # set again the env vars, in case we deleted it earlier
     if tmpvar:
         os.environ[tap_url_env_var] = tmpvar
 
 
-@pytest.mark.parametrize("input_val, expected", [
-    # Numeric values
-    (1, "= 1"),
-    (1.5, "= 1.5"),
-    (None, "= None"),
-
-    # String values
-    ("ciao", "= 'ciao'"),
-    ("1.5", "= '1.5'"),
-    ("ciao  ", "= 'ciao'"),
-    ("  ciao", "= 'ciao'"),
-    ("  ciao  ", "= 'ciao'"),
-    ("1.5 ", "= '1.5'"),
-    (" a string with spaces ", "= 'a string with spaces'"),
-    ("SGR A", "= 'SGR A'"),
-    ("'SGR A'", "= 'SGR A'"),
-
-    # Operator-based queries
-    ("< 5", "< 5"),
-    ("> 1.23", "> 1.23"),
-    ("< '5'", "< '5'"),
-    ("> '1.23'", "> '1.23'"),
-    ("like '%John%'", "like '%John%'"),
-    ("not like '%John%'", "not like '%John%'"),
-    ("in ('apple', 'mango', 'orange')", "in ('apple', 'mango', 'orange')"),
-    ("not in ('apple', 'mango', 'orange')", "not in ('apple', 'mango', 'orange')"),
-    ("in (1, 2, 3)", "in (1, 2, 3)"),
-    ("not in (1, 2, 3)", "not in (1, 2, 3)"),
-
-    # Operator-based queries
-    ("<5", "< 5"),
-    (">1.23", "> 1.23"),
-    ("<'5'", "< '5'"),
-    (">'1.23'", "> '1.23'"),
-    ("like'%John%'", "like '%John%'"),
-
-    # Strings that look like operators but should be treated as strings
-    ("'like %John%'", "= 'like %John%'"),
-    ("'= something'", "= '= something'"),
-    ("'> 5'", "= '> 5'"),
-    ("' > 1.23 '", "= ' > 1.23 '"),
-
-    # Ill-formed queries: not sanitized but expected to be passed through as-is
-    ("like %John%", "like %John%"),
-    ("not like %John%", "not like %John%"),
-    ("= SGR A", "= SGR A"),
-])
-def test_adql_sanitize_op_val(input_val, expected):
-    assert _adql_sanitize_op_val(input_val) == expected
-
-
-def test_maxrec():
+def test_request_file():
     eso_instance = Eso()
-
-    # EXPECTED_MAXREC is the default value in the conf
-    maxrec = eso_instance.maxrec
-    assert maxrec == EXPECTED_MAXREC
-
-    # we change it to 5
-    eso_instance.maxrec = 5
-    maxrec = eso_instance.maxrec
-    assert maxrec == 5
-
-    # change it to no-truncation
-    eso_instance.maxrec = None
-    maxrec = eso_instance.maxrec
-    assert maxrec == sys.maxsize
-
-    # no truncation
-    eso_instance.maxrec = 0
-    maxrec = eso_instance.maxrec
-    assert maxrec == sys.maxsize
-
-    # no truncation
-    eso_instance.maxrec = -1
-    maxrec = eso_instance.maxrec
-    assert maxrec == sys.maxsize
+    teststr = "generic cached query"
+    obtained = eso_instance.request_file(teststr)
+    obtained = os.path.split(obtained)[1]
+    expected = DATA_FILES['ADQL'][teststr]
+    assert obtained == expected, (f"Expected result: {expected}; "
+                                  f"Obtained result: {obtained}")
 
 
-def test_download_pyvo_table():
-    eso_instance = Eso()
-    dal = pyvo.dal.TAPService(eso_instance._tap_url())
+def test_py2adql():
+    #  Example query:
+    #
+    #  SELECT
+    #      target_name, dp_id, s_ra, s_dec, t_exptime, em_min, em_max,
+    #      dataproduct_type, instrument_name, obstech, abmaglim,
+    #      proposal_id, obs_collection
+    #  FROM
+    #      ivoa.ObsCore
+    #  WHERE
+    #      intersects(s_region, circle('ICRS', 109.668246, -24.558700, 0.001389))=1
+    #  AND
+    #      dataproduct_type in ('spectrum')
+    #  AND
+    #      em_min>4.0e-7
+    #  AND
+    #      em_max<1.2e-6
+    #  ORDER BY SNR DESC
+    #
 
-    q_str = "select * from ivoa.ObsCore"
-    table = None
-    with pytest.raises(pyvo.dal.exceptions.DALFormatError):
-        table = eso_instance._try_download_pyvo_table(q_str, dal)
+    # Simple tests
+    q = py2adql('ivoa.ObsCore')
+    eq = "select * from ivoa.ObsCore"
+    assert eq == q, f"Expected:\n{eq}\n\nObtained:\n{q}\n\n"
 
-    assert table is None
+    q = py2adql('ivoa.ObsCore', columns='*')
+    eq = "select * from ivoa.ObsCore"
+    assert eq == q, f"Expected:\n{eq}\n\nObtained:\n{q}\n\n"
 
+    q = py2adql('pinko.Pallino', ['pippo', 'tizio', 'caio'])
+    eq = "select pippo, tizio, caio from pinko.Pallino"
+    assert eq == q, f"Expected:\n{eq}\n\nObtained:\n{q}\n\n"
 
-def test_issue_table_length_warnings():
-    eso_instance = Eso()
+    q = py2adql('pinko.Pallino', ['pippo', 'tizio', 'caio'])
+    eq = "select pippo, tizio, caio from pinko.Pallino"
+    assert eq == q, f"Expected:\n{eq}\n\nObtained:\n{q}\n\n"
 
-    # should warn, since the table is empty
-    t = Table()
-    with pytest.warns(NoResultsWarning):
-        eso_instance._maybe_warn_about_table_length(t)
+    q = py2adql('pinko.Pallino', ['pippo', 'tizio', 'caio'],
+                where_constraints=['asdf > 1', 'asdf < 2', 'asdf = 3', 'asdf != 4'],
+                order_by='order_col')
+    eq = "select pippo, tizio, caio from pinko.Pallino " + \
+        "where asdf > 1 and asdf < 2 and asdf = 3 and asdf != 4 " + \
+        "order by order_col desc"
+    assert eq == q, f"Expected:\n{eq}\n\nObtained:\n{q}\n\n"
 
-    # should warn, since EXPECTED_MAXREC = eso_instance.maxrec
-    t = Table({"col_name": [i for i in range(EXPECTED_MAXREC)]})
-    with pytest.warns(MaxResultsWarning):
-        eso_instance._maybe_warn_about_table_length(t)
+    q = py2adql('pinko.Pallino', ['pippo', 'tizio', 'caio'],
+                where_constraints=["asdf = 'ASDF'", "bcd = 'BCD'"],
+                order_by='order_col')
+    eq = "select pippo, tizio, caio from pinko.Pallino " + \
+        "where asdf = 'ASDF' and bcd = 'BCD' " + \
+        "order by order_col desc"
+    assert eq == q, f"Expected:\n{eq}\n\nObtained:\n{q}\n\n"
 
-    # should not warn
-    t = Table({"col_name": [i for i in range(51)]})
-    eso_instance._maybe_warn_about_table_length(t)
+    # All arguments
+    columns = 'target_name, dp_id, s_ra, s_dec, t_exptime, em_min, em_max, ' + \
+        'dataproduct_type, instrument_name, obstech, abmaglim, ' + \
+        'proposal_id, obs_collection'
+    table = 'ivoa.ObsCore'
+    and_c_list = ['em_min>4.0e-7', 'em_max<1.2e-6', 'asdasdads']
 
+    q = py2adql(columns=columns, table=table,
+                where_constraints=and_c_list,
+                order_by='snr', order_by_desc=True)
+    expected_query = 'select ' + columns + ' from ' + table + \
+        ' where ' + and_c_list[0] + ' and ' + and_c_list[1] + ' and ' + and_c_list[2] + \
+        " order by snr desc"
+    assert expected_query == q, f"Expected:\n{expected_query}\n\nObtained:\n{q}\n\n"
 
-def test_reorder_columns(monkeypatch):
-    eso = Eso()
-    monkeypatch.setattr(eso, 'query_tap_service', monkey_tap)
-    table = eso.query_main(
-        column_filters={
-            'target': "SGR A",
-            'object': "SGR A"}
-    )
-    names_before = table.colnames[:]
-    table2 = reorder_columns(table)
-    names_after = table2.colnames[:]
+    # All arguments
+    q = py2adql(columns=columns, table=table,
+                where_constraints=and_c_list,
+                order_by='snr', order_by_desc=False)
+    expected_query = 'select ' + columns + ' from ' + table + \
+        ' where ' + and_c_list[0] + ' and ' + and_c_list[1] + ' and ' + and_c_list[2] + \
+        " order by snr asc"
+    assert expected_query == q, f"Expected:\n{expected_query}\n\nObtained:\n{q}\n\n"
 
-    # the columns we want to change are actually in the table
-    assert set(DEFAULT_LEAD_COLS_RAW).issubset(names_before)
-    assert set(DEFAULT_LEAD_COLS_RAW).issubset(names_after)
+    # ra, dec, radius
+    q = py2adql(columns=columns, table=table,
+                where_constraints=and_c_list,
+                order_by='snr', order_by_desc=False,
+                ra=1, dec=2, radius=3)
+    expected_query = 'select ' + columns + ' from ' + table + \
+        ' where ' + and_c_list[0] + ' and ' + and_c_list[1] + ' and ' + and_c_list[2] + \
+        ' and intersects(s_region, circle(\'ICRS\', 1, 2, 3))=1' + \
+        " order by snr asc"
+    assert expected_query == q, f"Expected:\n{expected_query}\n\nObtained:\n{q}\n\n"
 
-    # no columns are removed nor added
-    assert set(names_before) == set(names_after)
-
-    # Column by column, the contents are the same
-    for cname in table.colnames:
-        assert table[[cname]].values_equal(table2[[cname]]), f"Error for {cname}"
-
-    # empty table doesn't cause a crash
-    empty_1 = Table()
-    empty_2 = reorder_columns(empty_1)
-    assert len(empty_1) == 0 and isinstance(empty_1, Table)
-    assert len(empty_2) == 0 and isinstance(empty_1, Table)
-
-    # If the values we're looking for as leading columns, everything stays the same
-    some_table = Table({"x": [1, 2, 3], "y": [4, 5, 6]})
-    same_table = reorder_columns(some_table)
-    assert all(some_table == same_table), "Table with no cols to change fails"
-
-    # If what we pas is not a table, the function has no effect
-    not_a_table_1 = object()
-    not_a_table_2 = reorder_columns(not_a_table_1)
-    assert not_a_table_1 == not_a_table_2
-
-
-@pytest.mark.parametrize("params, expected", [
-    # Basic SELECT * cases
-    (_UserParams(table_name="ivoa.ObsCore"),
-     "select * from ivoa.ObsCore"),
-
-    (_UserParams(table_name="ivoa.ObsCore", columns=''),
-     "select * from ivoa.ObsCore"),
-
-    (_UserParams(table_name="ivoa.ObsCore", columns='*'),
-     "select * from ivoa.ObsCore"),
-
-    # Basic column selection
-    (_UserParams(table_name="my.Table", columns="a, b, c"),
-     "select a, b, c from my.Table"),
-
-    (_UserParams(table_name="my.Table", columns=["a", "b", "c"]),
-     "select a, b, c from my.Table"),
-
-    # With filters and order
-    (_UserParams(
-        table_name="my.Table",
-        columns=["a", "b", "c"],
-        column_filters={"x": "> 1", "y": "< 2"},
-        order_by="z"),
-     "select a, b, c from my.Table where x > 1 and y < 2 order by z desc"),
-
-    # With cone search
-    (_UserParams(
-        table_name="galaxies",
-        columns="name, ra, dec",
-        cone_ra=150.1, cone_dec=2.3, cone_radius=0.1),
-     "select name, ra, dec from galaxies where "
-     "intersects(s_region, circle('ICRS', 150.1, 2.3, 0.1))=1"),
-
-    # With count_only
-    (_UserParams(
-        table_name="galaxies",
-        cone_ra=10, cone_dec=20, cone_radius=0.5,
-        count_only=True),
-     "select count(*) from galaxies where intersects(s_region, circle('ICRS', 10, 20, 0.5))=1"),
-
-    # With top
-    (_UserParams(
-        table_name="stars",
-        columns="name, mag",
-        top=10,
-        order_by="mag",
-        order_by_desc=False),
-     "select top 10 name, mag from stars order by mag asc"),
-
-    # With multiple filters including IN
-    (_UserParams(
-        table_name="beautiful.Stars",
-        columns=["id", "instrument"],
-        column_filters={"instrument": "in ('MUSE', 'UVES')", "t_exptime": "> 100"},
-        order_by="t_exptime"),
-     "select id, instrument from beautiful.Stars where instrument in ('MUSE', 'UVES') "
-     "and t_exptime > 100 order by t_exptime desc"),
-
-    # With all params 1
-    (
-        _UserParams(
-            table_name="ivoa.ObsCore",
-            cone_ra=180.0,
-            cone_dec=-45.0,
-            cone_radius=0.05,
-            columns=["target_name", "s_ra", "s_dec", "em_min", "em_max"],
-            column_filters={
-                "em_min": "> 4e-7",
-                "em_max": "< 1.2e-6",
-                "dataproduct_type": "in ('spectrum')"
-            },
-            top=100,
-            order_by="em_min",
-            order_by_desc=True,
-            count_only=False,
-            query_str_only=True,
-        ),
-        "select top 100 target_name, s_ra, s_dec, em_min, em_max from ivoa.ObsCore "
-        "where em_min > 4e-7 and em_max < 1.2e-6 and dataproduct_type in ('spectrum') "
-        "and intersects(s_region, circle('ICRS', 180.0, -45.0, 0.05))=1 "
-        "order by em_min desc"
-    ),
-
-    # With all params 2
-    (
-        _UserParams(
-            table_name="ivoa.ObsCore",
-            cone_ra=180.0,
-            cone_dec=-45.0,
-            cone_radius=0.05,
-            columns=["target_name", "s_ra", "s_dec", "em_min", "em_max"],
-            column_filters={
-                "em_min": "> 4e-7",
-                "em_max": "< 1.2e-6",
-                "dataproduct_type": "in ('spectrum')"
-            },
-            top=100,
-            order_by="em_min",
-            order_by_desc=False,
-            count_only=True,
-            query_str_only=True,
-        ),
-        "select top 100 count(*) from ivoa.ObsCore "
-        "where em_min > 4e-7 and em_max < 1.2e-6 and dataproduct_type in ('spectrum') "
-        "and intersects(s_region, circle('ICRS', 180.0, -45.0, 0.05))=1"
-    ),
-])
-def test_py2adql(params, expected):
-    """
-    Tests that the ADQL query builder generates the expected query.
-
-    Example of typical adql query:
-
-        SELECT
-            target_name, dp_id, s_ra, s_dec, t_exptime, em_min, em_max,
-            dataproduct_type, instrument_name, obstech, abmaglim,
-            proposal_id, obs_collection
-        FROM
-            ivoa.ObsCore
-        WHERE
-            intersects(s_region, circle('ICRS', 109.668246, -24.558700, 0.001389)) = 1
-            AND dataproduct_type IN ('spectrum')
-            AND em_min > 4.0e-7
-            AND em_max < 1.2e-6
-        ORDER BY
-            em_min DESC
-    """
-    query = _py2adql(params)
-    assert query == expected, f"Expected:\n{expected}\n\nGot:\n{query}\n"
+    # ra, dec, radius
+    q = py2adql(columns=columns, table=table,
+                where_constraints=and_c_list,
+                order_by='snr', order_by_desc=False,
+                ra=1.23, dec=2.34, radius=3.45)
+    expected_query = 'select ' + columns + ' from ' + table + \
+        ' where ' + and_c_list[0] + ' and ' + and_c_list[1] + ' and ' + and_c_list[2] + \
+        ' and intersects(s_region, circle(\'ICRS\', 1.23, 2.34, 3.45))=1' + \
+        " order by snr asc"
+    assert expected_query == q, f"Expected:\n{expected_query}\n\nObtained:\n{q}\n\n"
