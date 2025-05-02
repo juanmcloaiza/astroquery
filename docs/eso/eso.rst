@@ -179,10 +179,12 @@ The list of all supported instruments can be retrieved using the :meth:`~astroqu
     >>> from astroquery.eso import Eso
     >>> eso = Eso()
     >>> eso.list_instruments()
-    ['alpaca', 'amber', 'apex', 'apex_quicklooks', 'crires', 'efosc', 'eris', 'espresso', 'fiat',
-     'fors1', 'fors2', 'giraffe', 'gravity', 'harps', 'hawki', 'isaac', 'kmos',
-     'matisse', 'midi', 'muse', 'naco', 'nirps', 'omegacam', 'pionier', 'sinfoni',
-     'sofi', 'sphere', 'uves', 'vimos', 'vircam', 'visir', 'wlgsu', 'xshooter']
+    ['alpaca', 'amber', 'apex', 'crires', 'efosc', 'eris',
+    'espresso', 'fiat', 'fors1', 'fors2', 'giraffe', 'gravity',
+    'harps', 'hawki', 'isaac', 'kmos', 'matisse', 'midi',
+    'muse', 'naco', 'nirps', 'omegacam', 'pionier', 'sinfoni',
+    'sofi', 'sphere', 'uves', 'vimos', 'vircam', 'visir',
+    'wlgsu', 'xshooter']
 
 This list corresponds to the instruments currently available for programmatic raw data queries in the ESO archive.
 
@@ -226,7 +228,7 @@ The output includes column names, data types, units, and, where applicable, `xty
                     utc    float                    s
 
     Number of records present in the table ist.midi:
-    421764
+    437577
     [astroquery.eso.core]
 
 **Note:** for a deeper description of each column, the following query can be issued
@@ -248,7 +250,7 @@ The ``columns`` argument controls which fields are returned in the results table
 
 .. doctest-remote-data::
     >>> table = eso.query_instrument(
-    ...             'midi',
+    ...             instrument='midi',
     ...             column_filters={
     ...                 'object':'NGC4151',
     ...                 'exp_start': "between '2008-01-01' and '2009-05-12'"
@@ -303,28 +305,29 @@ Example: retrieving all-sky images from the `APICAM` instrument using the `LUMIN
     >>> print(len(table))
     215
 
-    >>> print(table.columns)
-    <TableColumns names=('access_estsize', 'access_url', 'datalink_url', 'date_obs',
-                         'dec', 'dec_pnt', 'det_chip1id', ..., 'tpl_start')>
+    >>> table.colnames
+    ['object', 'ra', 'dec', 'dp_id', 'date_obs', 'prog_id',
+    'access_estsize', 'access_url', 'datalink_url', ... 'tpl_start']
 
-    >>> table[["object", "ra", "dec", "date_obs", "prog_id"]].pprint(max_width=200)
-     object      ra          dec              date_obs          prog_id
-                deg          deg
+    >>> table[["object", "ra", "dec", "date_obs", "prog_id"]]
+     <Table length=215>
+    object      ra          dec              date_obs          prog_id   
+                deg          deg                                          
+    object   float64      float64             object            object   
     ------- ------------ ------------ ----------------------- ------------
     ALL SKY 145.29212694 -24.53624194 2019-04-26T00:08:49.000 60.A-9008(A)
     ALL SKY 145.92251305 -24.53560305 2019-04-26T00:11:20.000 60.A-9008(A)
     ALL SKY    146.55707 -24.53497111 2019-04-26T00:13:52.000 60.A-9008(A)
     ...
     ALL SKY 143.56345694 -24.53804388 2019-04-26T23:57:59.000 60.A-9008(A)
-    Length = 215 rows
 
 **Note:** By default, the number of returned rows is limited to 1000. To retrieve more (or all) results, set:
 
-   .. code-block:: python
+.. doctest-remote-data::
 
-       eso.maxrec = -1  # disables the row limit entirely
+    >>> eso.maxrec = -1  # disables the row limit entirely
 
-You can also set ``eso.maxrec`` to a specific number (e.g., 10000) to limit results while avoiding truncation of large queries.
+You can also set ``eso.maxrec`` to a smaller/larger number to truncate/allow large queries.
 
 Query the ESO Archive for Reduced Data
 ======================================
@@ -341,6 +344,20 @@ The list of available surveys can be obtained with :meth:`astroquery.eso.EsoClas
 .. doctest-remote-data::
 
     >>> surveys = eso.list_surveys()
+    >>> surveys
+    ['081.C-0827', '092.A-0472', '096.B-0054', '1100.A-0528', '1101.A-0127', '193.D-0232',
+    '195.B-0283', '196.B-0578', '196.D-0214', '197.A-0384', '198.A-0708', '60.A-9284H',
+    '60.A-9493', 'ADHOC', 'ALCOHOLS', 'ALLSMOG', 'ALMA', 'AMAZE', 'AMBRE', 'APEX-SciOps',
+    'ARP_VST', 'ATLASGAL', 'CAFFEINE', 'ENTROPY', 'ePESSTOplus', 'ERIS-NIX',
+    'ERIS-SPIFFIER', 'ESPRESSO', 'ESSENCE', 'FDS', 'FEROS', 'Fornax3D', 'FORS2-SPEC',
+    'GAIAESO', 'GCAV', 'GIRAFFE', 'GOODS_FORS2', 'GOODS_ISAAC', 'GOODS_VIMOS_IMAG',
+    'GOODS_VIMOS_SPEC', 'GW170817', 'HARPS', 'HAWKI', 'HUGS', 'INSPIRE', 'KIDS', 'KMOS',
+    'LEGA-C', 'LESS', 'MAGIC', 'MUSE', 'MUSE-DEEP', 'MUSE-STD', 'MW-BULGE-PSFPHOT',
+    'NGTS', 'NIRPS', 'OMEGACAM_INAF', 'PENELLOPE', 'PESSTO', 'PHANGS', 'PIONIER',
+    'SHARKS', 'SPHERE', 'SUPER', 'UltraVISTA', 'UVES', 'UVES_SQUAD', 'VANDELS', 'VEGAS',
+    'VEILS', 'VEXAS', 'VHS', 'VIDEO', 'VIKING', 'VIMOS', 'VINROUGE', 'VIPERS', 'VISIONS',
+    'VMC', 'VPHASplus', 'VST-ATLAS', 'VVV', 'VVVX', 'XQ-100', 'XSGRB', 'XSHOOTER',
+    'XShootU', 'XSL', 'ZCOSMOS']
 
 Query a specific survey with constraints
 ----------------------------------------
@@ -350,12 +367,88 @@ target ``HD203608``. The archive can be queried as follows:
 
 .. doctest-remote-data::
 
-    >>> table = eso.query_surveys(surveys='HARPS', target_name="HD203608")
+    >>> table = eso.query_surveys(surveys='HARPS', column_filters= {"target_name": "HD203608"})
+    >>> table
+    <Table length=1000>
+    target_name    s_ra     s_dec              dp_id             proposal_id  abmaglim access_estsize ...   snr    strehl t_exptime     t_max          t_min      t_resolution t_xel
+                deg       deg                                                mag        kbyte      ...                     s           d              d             s            
+    object    float64   float64             object               object    float64      int64      ... float64 float64  float64     float64        float64       float64    int64
+    ----------- --------- --------- --------------------------- ------------- -------- -------------- ... ------- ------- --------- -------------- -------------- ------------ -----
+    HD203608 321.61455 -65.36429 ADP.2014-09-16T11:03:30.940 077.D-0720(A)       --           5261 ...    60.9      --      33.0 53956.24265204 53956.24227009     33.00048    --
+    HD203608 321.61761 -65.36485 ADP.2014-09-16T11:03:31.020 077.D-0720(A)       --           5261 ...    87.0      --    32.999 53953.36835125 53953.36796931    32.999616    --
+    HD203608 321.60594 -65.36528 ADP.2014-09-16T11:03:31.067 077.D-0720(A)       --           5261 ...    73.9      --      33.0 53956.15534682 53956.15496487     33.00048    --
+    ...
+    HD203608 321.61113 -65.37211 ADP.2014-09-16T11:05:14.863 077.D-0720(A)       --           5261 ...    95.2      --    32.999 53954.99642615 53954.99604421    32.999616    --
 
 The returned table has a ``dp_id`` column, which can be used to retrieve the datasets with
 :meth:`astroquery.eso.EsoClass.retrieve_data`: ``eso.retrieve_data(table["dp_id"][0])``.
-More details about this method in the next section.
+More details about this method in the following section.
 
+Query a specific instrument with constraints
+----------------------------------------
+
+You can also query a specific instrument using the same method (e.g., ``HARPS``). For example, to retrieve **all** available HARPS data products regardless of the associated survey towards ``HD203608`` is given the following query:
+
+.. doctest-remote-data::
+
+    >>> table = eso.query_surveys(column_filters={"instrument_name": "HARPS", "target_name": "HD203608"})
+    >>> table
+    <Table length=1000>
+    target_name    s_ra     s_dec              dp_id             proposal_id  abmaglim access_estsize               access_format                ... s_xel2   snr    strehl t_exptime     t_max          t_min      t_resolution t_xel
+                deg       deg                                                mag        kbyte                                                 ...                            s           d              d             s            
+    object    float64   float64             object               object    float64      int64                        object                   ... int64  float64 float64  float64     float64        float64       float64    int64
+    ----------- --------- --------- --------------------------- ------------- -------- -------------- ------------------------------------------ ... ------ ------- ------- --------- -------------- -------------- ------------ -----
+    HD203608 321.61455 -65.36429 ADP.2014-09-16T11:03:30.940 077.D-0720(A)       --           5261 application/x-votable+xml;content=datalink ...     --    60.9      --      33.0 53956.24265204 53956.24227009     33.00048    --
+    HD203608 321.61761 -65.36485 ADP.2014-09-16T11:03:31.020 077.D-0720(A)       --           5261 application/x-votable+xml;content=datalink ...     --    87.0      --    32.999 53953.36835125 53953.36796931    32.999616    --
+    HD203608 321.60594 -65.36528 ADP.2014-09-16T11:03:31.067 077.D-0720(A)       --           5261 application/x-votable+xml;content=datalink ...     --    73.9      --      33.0 53956.15534682 53956.15496487     33.00048    --
+    ...
+    HD203608 321.61113 -65.37211 ADP.2014-09-16T11:05:14.863 077.D-0720(A)       --           5261 application/x-votable+xml;content=datalink ...     --    95.2      --    32.999 53954.99642615 53954.99604421    32.999616    --
+
+**Note:** Keep in mind that the definition of a ``survey`` is not the same as the definition of an ``instrument``. The ``survey`` (also named ``collection``) name refers to a specific observing program or science project (e.g., ``AMBRE`` or ``HARPS``), while the ``instrument_name`` refers to the physical instrument that acquired the data (e.g., ``HARPS`` or ``MUSE``). In this case, we’re retrieving **all data products from the HARPS instrument**, regardless of which survey or program they belong to—including, but not limited to the ``HARPS`` survey (collection). The survey (collection) can be checked using e.g. ``table['obs_collection']`` column.
+
+Simple Cone Search: HAWK-I Data Around Sgr A*
+----------------------------------------
+
+This example demonstrates how to perform a basic **cone search** for publicly available **HAWK-I Phase 3 (reduced) data products** around the Galactic Center (Sgr A\*) using :meth:`astroquery.eso.EsoClass.query_surveys`.
+
+Sgr A\* is located at right ascension 266.41683° and declination –29.00781°. We perform a search within a 0.05-degree radius (~3 arcminutes).
+
+.. doctest-skip::
+
+    >>> # Coordinates of Sgr A* (Galactic Center)
+    >>> ra = 266.41683
+    >>> dec = -29.00781
+    >>> radius = 0.05  # degrees
+
+    >>> # Cone search
+    >>> result = eso.query_surveys(
+            cone_ra=ra,
+            cone_dec=dec,
+            cone_radius=radius
+            column_filters={
+                'instrument_name': 'HAWKI'
+                }
+        )
+
+Similar cone search functionality is also available through :meth:`query_instrument` and :meth:`query_main` by passing the same ``cone_ra``, ``cone_dec``, and ``cone_radius`` arguments. For example:
+
+.. code-block:: python
+
+    result = eso.query_instrument(
+        'HAWKI',
+        cone_ra=ra,
+        cone_dec=dec,
+        cone_radius=radius,
+        columns=['object', 'date_obs']
+    )
+
+    result = eso.query_main(
+        'HAWKI',
+        cone_ra=ra,
+        cone_dec=dec,
+        cone_radius=radius,
+        columns=['object', 'date_obs']
+    )
 
 Obtaining extended information on data products
 ===============================================
@@ -378,7 +471,7 @@ This method is detailed in the example below.
     >>> table_headers = eso.get_headers(table["dp_id"])
     >>> len(table_headers.columns)
     336
-    >>> table_headers.pprint()
+    >>> table_headers
                DP.ID             SIMPLE BITPIX ...   HIERARCH ESO OCS EXPO7 FNAME2     HIERARCH ESO OCS EXPO8 FNAME1     HIERARCH ESO OCS EXPO8 FNAME2
     ---------------------------- ------ ------ ... --------------------------------- --------------------------------- ---------------------------------
     MIDI.2007-02-07T07:01:51.000   True     16 ...
@@ -393,6 +486,48 @@ This method is detailed in the example below.
 As shown above, for each data product ID (``DP.ID``; note that this is equiventlent to "dp_id" in ``table``), the full header (336 columns in our case) of the archive
 FITS file is collected. In the above table ``table_headers``, there are as many rows as in the column ``table['dp_id']``.
 
+Querying the TAP Service with ADQL
+==================================
+
+The ESO TAP+ service allows you to issue custom ADQL (Astronomical Data Query Language) queries against the archive metadata, offering fine-grained control over your search. TAP queries can be issued against different tables, depending on the type of data you're interested in:
+
+- The ``ivoa.ObsCore`` table provides standardized metadata for **fully calibrated (Phase 3) data products**, making it ideal for science-ready data queries.
+- The ``dbo.raw`` table provides access to **raw observational data** across all ESO instruments.
+- The ``ist.<instrument_name>`` tables (e.g. ``ist.midi``, ``ist.muse``) allow more detailed queries tailored to **instrument-specific raw metadata**.
+
+These various query options have also been demonstrated earlier in this documentation using high-level `astroquery.eso` interfaces such as :meth:`~astroquery.eso.EsoClass.query_instrument`, :meth:`~astroquery.eso.EsoClass.query_main`, and :meth:`astroquery.eso.EsoClass.list_surveys`. Using ADQL directly through TAP enables greater flexibility when building complex queries that combine constraints across multiple metadata fields.
+
+The following example queries the `ivoa.ObsCore` table to find fully calibrated (`calib_level=3`) multi-extension observations (`multi_ob='M'`) from the `SPHERE` and `VEGAS` surveys, with spatial pixel scales smaller than 0.2 arcsec:
+
+.. doctest-skip::
+
+    >>> from astroquery.eso import Eso
+    >>> eso = Eso()
+    >>> query = (
+    ...     "SELECT obs_collection, calib_level, multi_ob, filter, s_pixel_scale, instrument_name "
+    ...     "FROM ivoa.ObsCore "
+    ...     "WHERE obs_collection IN ('sphere', 'vegas') "
+    ...     "AND calib_level = 3 "
+    ...     "AND multi_ob = 'M' "
+    ...     "AND s_pixel_scale < 0.2"
+    ... )
+    >>> result = eso.query_tap_service(query)
+    >>> result
+    <Table length=15>
+    obs_collection calib_level multi_ob filter s_pixel_scale instrument_name
+                                                arcsec                   
+        object        int32     object  object    float64         object    
+    -------------- ----------- -------- ------ ------------- ---------------
+            SPHERE           3        M    K12        0.0122          SPHERE
+            SPHERE           3        M    K12        0.0122          SPHERE
+            ...
+            SPHERE           3        M      H        0.0122          SPHERE
+
+**Note:** For more information about the Table Access Protocol (TAP) and how to write ADQL queries, refer to the following resources:
+
+   - `ESO TAP+ documentation <https://archive.eso.org/programmatic/>`_: Describes ESO's implementation of TAP and the available services.
+   - `IVOA TAP standard <https://www.ivoa.net/documents/TAP/>`_: The official specification from the International Virtual Observatory Alliance.
+   - `ADQL specification <https://www.ivoa.net/documents/ADQL/>`_: Defines the query language used to interact with TAP services.
 
 Downloading datasets from the archive
 =====================================
