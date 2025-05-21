@@ -465,7 +465,7 @@ You can also query a specific instrument using the same method (e.g., ``HARPS``)
 
     In many cases, survey names match the instrument name (e.g., ``HARPS``, ``MUSE``, ``XSHOOTER``), which typically indicates **Phase 3 products processed and curated by ESO**. However, when the collection name differs (e.g., ``AMBRE``, ``GAIAESO``, ``PHANGS``), it usually denotes **community-contributed data** from large collaborations or specific science teams.
 
-    So, for example, querying for ``eso.query_surveys(surveys="HARPS"}`` will return all products taken with the HARPS instrument, across all programs and collections. In contrast, filtering on ``eso.query_surveys(column_filters={"instrument_name": "HARPS"})`` will return only the `HARPS data reduced by ESO <https://doi.eso.org/10.18727/archive/33>`_.
+    So, for example, querying for ``eso.query_surveys(column_filters={"instrument_name": "HARPS"})`` will return all products taken with the HARPS instrument, across all programs and collections. In contrast, filtering on ``eso.query_surveys(surveys="HARPS"}`` will return only the `HARPS data reduced by ESO <https://doi.eso.org/10.18727/archive/33>`_.
 
     You can inspect the collection for each result via the ``obs_collection`` column in your results table.
 
