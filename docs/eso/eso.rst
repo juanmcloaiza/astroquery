@@ -30,10 +30,6 @@ ESO Queries (`astroquery.eso`)
     Please review your queries carefully and update them accordingly to ensure compatibility with the new astroquery versions.
     See section :ref:`column-filters-fix` at the end of this document. 
 
-.. tip::
-
-    TEST fir this tip 
-
 .. contents::
    :local:
    :depth: 3
@@ -363,6 +359,28 @@ Example: retrieving all-sky images from the ``APICAM`` instrument using the ``LU
 You can also set ``eso.maxrec`` to a smaller/larger number to truncate/allow large queries.
 
 .. _eso-reduced-data:
+
+.. tip::
+
+    Use ``query_main`` when you want to search **across all instruments**, for example to retrieve all observations of a specific source regardless of the instrument used.
+
+    .. doctest-remote-data::
+
+        table_raw = eso.query_main(column_filters={"object": "NGC 3627"})
+
+    Use ``query_instrument`` when you want a more **refined, instrument-specific search**, applying filters that are only available for a particular instrument (e.g. instrument modes, configurations, or ambient conditions).
+
+    .. doctest-remote-data::
+
+        column_filters = {
+            "dp_cat": "SCIENCE",           # Science data only
+            "ins_opt1_name": "HIGH_SENS",  # High sensitivity mode
+            "night_flag": "night",         # Nighttime observations only
+            "moon_illu": "< 0",            # No moon (below horizon)
+            "lst": "between 0 and 6"       # Local sidereal time early in the night
+        }
+
+        table_raw = eso.query_instrument("midi", column_filters=column_filters)
 
 Query the ESO Archive for Reduced Data
 ======================================
