@@ -198,8 +198,8 @@ Once set, you can simply call ``eso.login()`` without specifying a username:
 
 .. _eso-raw-data:
 
-Query the ESO Archive for Raw Data
-==================================
+Query the ESO Archive for Raw Data (Instrument-Specific)
+========================================================
 
 The ESO Science Archive provides raw, unprocessed observational files and metadata directly from its suite of instruments. You can search either **instrument-specifically** using :meth:`~astroquery.eso.EsoClass.query_instrument`, which exposes instrument-unique columns and lets you apply hardware-tailored filters, or via the **global raw table** with :meth:`~astroquery.eso.EsoClass.query_main`, which offers a consistent set of columns across all instruments (omitting any instrument-specific fields). This flexibility allows you to perform highly specialized queries when you know exactly which instrument you need, or broad, cross-instrument searches when you want to compare data from multiple instruments. 
 
@@ -308,8 +308,9 @@ The ``columns`` argument controls which fields are returned in the results table
    - Temporal filters on fields like ``exp_start`` or ``release_date`` can use SQL-style syntax (e.g. ``between 'YYYY-MM-DD' and 'YYYY-MM-DD'``).
    - Column names are case-sensitive in Python, so ensure they match exactly.
 
-Querying all instruments
-------------------------
+
+Query the ESO Archive for Raw Data (Generic)
+============================================
 
 In some cases, you may want to query the ESO Science Archive without targeting a specific instrument. This is what the :meth:`~astroquery.eso.EsoClass.query_main` method is designed for. It allows access to the global raw data table, which combines metadata across all instruments. Internally, this method queries the ``dbo.raw`` table via ESO's `TAP service <https://archive.eso.org/programmatic/#TAP>`_, which you could also access directly using ADQL with a simple statement like:
 
@@ -323,7 +324,35 @@ This method is particularly useful for querying instruments that do not have a d
 - e.g. ``feros``: legacy spectrographs
 - e.g. ``APICAM``, ``MASCOT``: all-sky cameras or auxiliary systems
 
-Example: retrieving all-sky images from the ``APICAM`` instrument using the ``LUMINANCE`` filter, on a single night (i.e. 2019-04-26):
+Inspecting available query options
+----------------------------------
+
+As before, we start by inspecting the available columns that can be queried with the following:
+
+.. doctest-remote-data::
+
+    >>> eso.query_main(help=True)
+    INFO: 
+    Columns present in the table dbo.raw:
+        column_name     datatype    xtype     unit 
+    ------------------- -------- ----------- ------
+        access_estsize     long              kbyte
+            access_url     char                   
+          datalink_url     char                   
+              date_obs     char                   
+                   dec   double                deg
+               dec_pnt   double                deg
+                   ...
+             tpl_start     char                   
+
+    Number of records present in the table dbo.raw:
+    34821254
+    [astroquery.eso.core]
+
+Querying with constraints
+-------------------------
+
+Now that we know which of the columns are available for queries, we can, for example, retrieving all-sky images from the ``APICAM`` instrument using the ``LUMINANCE`` filter, on a single night (i.e. 2019-04-26):
 
 .. doctest-remote-data::
 
@@ -411,6 +440,31 @@ The list of available surveys can be obtained with :meth:`~astroquery.eso.EsoCla
     'VEILS', 'VEXAS', 'VHS', 'VIDEO', 'VIKING', 'VIMOS', 'VINROUGE', 'VIPERS', 'VISIONS',
     'VMC', 'VPHASplus', 'VST-ATLAS', 'VVV', 'VVVX', 'XQ-100', 'XSGRB', 'XSHOOTER',
     'XShootU', 'XSL', 'ZCOSMOS']
+
+Inspecting available query options
+----------------------------------
+
+As before, list the possible columns in :meth:`~astroquery.eso.EsoClass.query_surveys` that can be queried with: 
+
+.. doctest-remote-data::
+
+    >>> eso.query_surveys(help=True) # get help on the ESO query
+    INFO: 
+    Columns present in the table ivoa.ObsCore:
+        column_name     datatype    xtype     unit 
+    ------------------- -------- ----------- ------
+               abmaglim   double                mag
+         access_estsize     long              kbyte
+          access_format     char                   
+             access_url     char                   
+          bib_reference     char                   
+            calib_level      int                                 
+                    ...
+            target_name     char                   
+
+    Number of records present in the table ivoa.ObsCore:
+    4559928
+    [astroquery.eso.core]
 
 Query a specific survey with constraints
 ----------------------------------------
