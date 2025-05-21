@@ -189,7 +189,9 @@ Once set, you can simply call ``eso.login()`` without specifying a username:
 .. _eso-raw-data:
 
 Query the ESO Archive for Raw Data
-==================================
+===========
+
+JUAN DOING A TESt HERE... REMOVE THIS LINE; FIX THE UNDERLINE ABOVE
 
 The ESO Science Archive provides raw, unprocessed observational files and metadata directly from its suite of instruments. You can search either **instrument-specifically** using :meth:`~astroquery.eso.EsoClass.query_instrument`, which exposes instrument-unique columns and lets you apply hardware-tailored filters, or via the **global raw table** with :meth:`~astroquery.eso.EsoClass.query_main`, which offers a consistent set of columns across all instruments (omitting any instrument-specific fields). This flexibility allows you to perform highly specialized queries when you know exactly which instrument you need, or broad, cross-instrument searches when you want to compare data from multiple instruments. 
 
