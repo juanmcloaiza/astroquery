@@ -30,6 +30,10 @@ ESO Queries (`astroquery.eso`)
     Please review your queries carefully and update them accordingly to ensure compatibility with the new astroquery versions.
     See section :ref:`column-filters-fix` at the end of this document. 
 
+.. tip::
+
+    TEST fir this tip 
+
 .. contents::
    :local:
    :depth: 3
@@ -147,12 +151,12 @@ The following examples show typical login and data retrieval workflows:
     INFO: Authentication successful! [astroquery.eso.core]
 
     >>> # Successful download of a public file (with or without login)
-    >>> eso.retrieve_data('AMBER.2006-03-14T07:40:19.830') # doctest: +SKIP
+    >>> eso.retrieve_data("AMBER.2006-03-14T07:40:19.830") # doctest: +SKIP
     INFO: Downloading file 1/1 https://dataportal.eso.org/dataPortal/file/AMBER.2006-03-14T07:40:19.830
     INFO: Successfully downloaded dataset AMBER.2006-03-14T07:40:19.830
 
     >>> # Access denied to a restricted-access file (as anonymous user or as authenticated but not authorised user)
-    >>> eso.retrieve_data('ADP.2023-03-02T01:01:24.355') # doctest: +SKIP
+    >>> eso.retrieve_data("ADP.2023-03-02T01:01:24.355") # doctest: +SKIP
     INFO: Downloading file 1/1 https://dataportal.eso.org/dataPortal/file/ADP.2023-03-02T01:01:24.355
     ERROR: Access denied to https://dataportal.eso.org/dataPortal/file/ADP.2023-03-02T01:01:24.355
 
@@ -171,7 +175,7 @@ As shown above, your password can be stored securely using the `keyring <https:/
 
 .. doctest-skip::
 
-    >>> keyring.delete_password('astroquery:www.eso.org', 'your_username')
+    >>> keyring.delete_password("astroquery:www.eso.org", "your_username")
 
 Automatic Login
 ---------------
@@ -244,7 +248,7 @@ The output includes column names, data types, units, and, where applicable, ``xt
 
 .. doctest-remote-data::
 
-    >>> eso.query_instrument('midi', help=True)  # doctest: +IGNORE_OUTPUT
+    >>> eso.query_instrument("midi", help=True)  # doctest: +IGNORE_OUTPUT
     INFO:
     Columns present in the table ist.midi:
         column_name     datatype    xtype         unit
@@ -286,11 +290,11 @@ The ``columns`` argument controls which fields are returned in the results table
 
 .. doctest-remote-data::
     >>> table = eso.query_instrument(
-    ...             instrument='midi',
+    ...             instrument="midi",
     ...             column_filters={
-    ...                 'object':'NGC4151',
-    ...                 'exp_start': "between '2008-01-01' and '2009-05-12'"},
-    ...             columns=['object', 'date_obs'])
+    ...                 "object":"NGC4151",
+    ...                 "exp_start": "between '2008-01-01' and '2009-05-12'"},
+    ...             columns=["object", "date_obs"])
     >>> table
     <Table length=196>
     object         date_obs
@@ -330,9 +334,9 @@ Example: retrieving all-sky images from the ``APICAM`` instrument using the ``LU
     >>> eso.maxrec = -1    # Return all results without truncation
     >>> table = eso.query_main(
     ...                     column_filters={
-    ...                         'instrument': 'APICAM',
-    ...                         'filter_path': 'LUMINANCE',
-    ...                         'exp_start': "between '2019-04-26' and '2019-04-27'"})
+    ...                         "instrument": "APICAM",
+    ...                         "filter_path": "LUMINANCE",
+    ...                         "exp_start": "between '2019-04-26' and '2019-04-27'"})
     >>> print(len(table))
     215
     >>> table.colnames
@@ -398,7 +402,7 @@ target ``HD203608``. The archive can be queried as follows:
 
 .. doctest-remote-data::
 
-    >>> table = eso.query_surveys(surveys='HARPS', 
+    >>> table = eso.query_surveys(surveys="HARPS", 
     ...                           column_filters= {"target_name": "HD203608"})
     >>> table
     <Table length=1000>
@@ -437,7 +441,7 @@ You can also query a specific instrument using the same method (e.g., ``HARPS``)
     ...
     HD203608 321.61113 -65.37211 ADP.2014-09-16T11:05:14.863 077.D-0720(A)       --           5261 application/x-votable+xml;content=datalink ...     --    95.2      --    32.999 53954.99642615 53954.99604421    32.999616    --
 
-**Note:** Keep in mind that the definition of a ``survey`` is not the same as the definition of an ``instrument``. The ``survey`` (also named ``collection``) name refers to a specific observing program or science project (e.g., ``AMBRE`` or ``HARPS``), while the ``instrument_name`` refers to the physical instrument that acquired the data (e.g., ``HARPS`` or ``MUSE``). In this case, we’re retrieving **all data products from the HARPS instrument**, regardless of which survey or program they belong to—including, but not limited to the ``HARPS`` survey (collection). The survey (collection) can be checked using e.g. ``table['obs_collection']`` column.
+**Note:** Keep in mind that the definition of a ``survey`` is not the same as the definition of an ``instrument``. The ``survey`` (also named ``collection``) name refers to a specific observing program or science project (e.g., ``AMBRE`` or ``HARPS``), while the ``instrument_name`` refers to the physical instrument that acquired the data (e.g., ``HARPS`` or ``MUSE``). In this case, we’re retrieving **all data products from the HARPS instrument**, regardless of which survey or program they belong to—including, but not limited to the ``HARPS`` survey (collection). The survey (collection) can be checked using e.g. ``table["obs_collection"]`` column.
 
 Simple Cone Search 
 ------------------
@@ -458,14 +462,14 @@ Sgr A\* is located at right ascension 266.41683° and declination –29.00781°.
     ...        cone_ra=ra,
     ...        cone_dec=dec,
     ...        cone_radius=radius
-    ...        column_filters={'instrument_name': 'HAWKI'})
+    ...        column_filters={"instrument_name": "HAWKI"})
 
 Similar cone search functionality is also available through :meth:`~astroquery.eso.EsoClass.query_instrument` and :meth:`~astroquery.eso.EsoClass.query_main` by passing the same ``cone_ra``, ``cone_dec``, and ``cone_radius`` arguments. For example:
 
 .. doctest-remote-data::
 
     >>> result = eso.query_instrument(
-    ...             'HAWKI',
+    ...             "HAWKI",
     ...             cone_ra=ra,
     ...             cone_dec=dec,
     ...             cone_radius=radius)
@@ -473,7 +477,7 @@ Similar cone search functionality is also available through :meth:`~astroquery.e
 .. doctest-remote-data::
 
     >>> result = eso.query_main(
-    ...             'HAWKI',
+    ...             "HAWKI",
     ...             cone_ra=ra,
     ...             cone_dec=dec,
     ...             cone_radius=radius
@@ -604,6 +608,9 @@ Available options:
     >>> # Download science data with raw calibrations
     >>> data_files = eso.retrieve_data(table['dp_id'][:2], with_calib="raw")
 
+
+.. doctest-skip::
+
     >>> # Download science data with processed calibrations
     >>> data_files = eso.retrieve_data(table['dp_id'][:2], with_calib="processed")
 
@@ -638,15 +645,15 @@ Filtering between two dates
 
     # ❌ Invalid (WDB-specific fields, not recognized by TAP)
     column_filters = {
-        'stime': '2024-01-01',
-        'etime': '2024-12-31'
+        "stime": "2024-01-01",
+        "etime": "2024-12-31"
     }
 
 .. doctest-skip::
 
     # ✅ Correct (TAP-compliant syntax using 'exp_start')
     column_filters = {
-        'exp_start': "between '2024-01-01' and '2024-12-31'"
+        "exp_start": "between '2024-01-01' and '2024-12-31'"
     }
 
 Filtering with only a start date
@@ -656,14 +663,14 @@ Filtering with only a start date
 
     # ❌ Invalid
     column_filters = {
-        'stime': '2024-01-01'
+        "stime": "2024-01-01"
     }
 
 .. doctest-skip::
 
     # ✅ Correct
     column_filters = {
-        'exp_start': "> '2024-01-01'"
+        "exp_start": "> '2024-01-01'"
     }
 
 Filtering with only an end date
@@ -673,20 +680,20 @@ Filtering with only an end date
 
     # ❌ Invalid
     column_filters = {
-        'etime': '2024-12-31'
+        "etime": "2024-12-31"
     }
 
 .. doctest-skip::
 
     # ✅ Correct
     column_filters = {
-        'exp_start': "< '2024-12-31'"
+        "exp_start": "< '2024-12-31'"
     }
 
 **Note:** To inspect which filterable columns are available in your current context, use:
 
 .. doctest-remote-data::
-    >>> eso.query_instrument('midi', help=True)
+    >>> eso.query_instrument("midi", help=True)
 
 or for all-instrument queries:
 
