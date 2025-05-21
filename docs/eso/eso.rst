@@ -301,13 +301,12 @@ The ``columns`` argument controls which fields are returned in the results table
         ...
     NGC4151 2009-05-11T01:42:08.432
 
-**Note:** When building queries:
+.. note::
    
-   - Use only column names returned via ``help=True`` (e.g. ``exp_start``, ``object``, ``prog_id``, ``exptime``, etc.).
-   - String filters (like ``object``) are matched case-insensitively.
-   - Temporal filters on fields like ``exp_start`` or ``release_date`` can use SQL-style syntax (e.g. ``between 'YYYY-MM-DD' and 'YYYY-MM-DD'``).
-   - Column names are case-sensitive in Python, so ensure they match exactly.
-
+    - Use only column names returned via ``help=True`` (e.g. ``exp_start``, ``object``, ``prog_id``, ``exptime``, etc.).
+    - String filters (like ``object``) are matched case-insensitively.
+    - Temporal filters on fields like ``exp_start`` or ``release_date`` can use SQL-style syntax (e.g. ``between 'YYYY-MM-DD' and 'YYYY-MM-DD'``).
+    - Column names are case-sensitive in Python, so ensure they match exactly.
 
 Query the ESO Archive for Raw Data (Generic)
 ============================================
@@ -600,11 +599,13 @@ The following example queries the ``ivoa.ObsCore`` table to find fully calibrate
             ...
             SPHERE           3        M      H        0.0122          SPHERE
 
-**Note:** For more information about the TAP and how to write ADQL queries, refer to the following resources:
+.. note:: 
 
-   - `ESO TAP+ documentation <https://archive.eso.org/programmatic/>`_: Describes ESO's implementation of TAP and the available services.
-   - `IVOA TAP standard <https://www.ivoa.net/documents/TAP/>`_: The official specification from the International Virtual Observatory Alliance.
-   - `ADQL specification <https://www.ivoa.net/documents/ADQL/>`_: Defines the query language used to interact with TAP services.
+    For more information about the TAP and how to write ADQL queries, refer to the following resources:
+
+    - `ESO TAP+ documentation <https://archive.eso.org/programmatic/>`_: Describes ESO's implementation of TAP and the available services.
+    - `IVOA TAP standard <https://www.ivoa.net/documents/TAP/>`_: The official specification from the International Virtual Observatory Alliance.
+    - `ADQL specification <https://www.ivoa.net/documents/ADQL/>`_: Defines the query language used to interact with TAP services.
 
 
 .. _eso-headers:
