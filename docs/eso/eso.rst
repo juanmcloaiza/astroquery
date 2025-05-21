@@ -366,7 +366,7 @@ You can also set ``eso.maxrec`` to a smaller/larger number to truncate/allow lar
 
     .. doctest-remote-data::
 
-        table_raw = eso.query_main(column_filters={"object": "NGC 3627"})
+        table = eso.query_main(column_filters={"object": "NGC 3627"})
 
     Use ``query_instrument`` when you want a more **refined, instrument-specific search**, applying filters that are only available for a particular instrument (e.g. instrument modes, configurations, or ambient conditions).
 
@@ -380,7 +380,7 @@ You can also set ``eso.maxrec`` to a smaller/larger number to truncate/allow lar
             "lst": "between 0 and 6"       # Local sidereal time early in the night
         }
 
-        table_raw = eso.query_instrument("midi", column_filters=column_filters)
+        table = eso.query_instrument("midi", column_filters=column_filters)
 
 Query the ESO Archive for Reduced Data
 ======================================
@@ -459,7 +459,15 @@ You can also query a specific instrument using the same method (e.g., ``HARPS``)
     ...
     HD203608 321.61113 -65.37211 ADP.2014-09-16T11:05:14.863 077.D-0720(A)       --           5261 application/x-votable+xml;content=datalink ...     --    95.2      --    32.999 53954.99642615 53954.99604421    32.999616    --
 
-**Note:** Keep in mind that the definition of a ``survey`` is not the same as the definition of an ``instrument``. The ``survey`` (also named ``collection``) name refers to a specific observing program or science project (e.g., ``AMBRE`` or ``HARPS``), while the ``instrument_name`` refers to the physical instrument that acquired the data (e.g., ``HARPS`` or ``MUSE``). In this case, we’re retrieving **all data products from the HARPS instrument**, regardless of which survey or program they belong to—including, but not limited to the ``HARPS`` survey (collection). The survey (collection) can be checked using e.g. ``table["obs_collection"]`` column.
+.. tip:: 
+
+    Keep in mind that the definition of a ``survey`` (also referred to as a **collection** in the ESO Science Archive) is not the same as the definition of an **instrument**. The ``instrument_name`` refers to the actual hardware that acquired the data (e.g., ``HARPS``, ``MUSE``), whereas the ``obs_collection`` identifies the scientific program, survey, or processing pipeline associated with the data product. 
+
+    In many cases, survey names match the instrument name (e.g., ``HARPS``, ``MUSE``, ``XSHOOTER``), which typically indicates **Phase 3 products processed and curated by ESO**. However, when the collection name differs (e.g., ``AMBRE``, ``GAIAESO``, ``PHANGS``), it usually denotes **community-contributed data** from large collaborations or specific science teams.
+
+    So, for example, querying for ``eso.query_surveys(surveys="HARPS"}`` will return all products taken with the HARPS instrument, across all programs and collections. In contrast, filtering on ``eso.query_surveys(column_filters={"instrument_name": "HARPS"})`` will return only the `HARPS data reduced by ESO <https://doi.eso.org/10.18727/archive/33>`_.
+
+    You can inspect the collection for each result via the ``obs_collection`` column in your results table.
 
 Simple Cone Search 
 ------------------
