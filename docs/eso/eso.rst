@@ -301,7 +301,7 @@ The ``columns`` argument controls which fields are returned in the results table
         ...
     NGC4151 2009-05-11T01:42:08.432
 
-.. note::
+.. tip::
    
     - Use only column names returned via ``help=True`` (e.g. ``exp_start``, ``object``, ``prog_id``, ``exptime``, etc.).
     - String filters (like ``object``) are matched case-insensitively.
@@ -599,7 +599,7 @@ The following example queries the ``ivoa.ObsCore`` table to find fully calibrate
             ...
             SPHERE           3        M      H        0.0122          SPHERE
 
-.. note:: 
+.. tip:: 
 
     For more information about the TAP and how to write ADQL queries, refer to the following resources:
 
