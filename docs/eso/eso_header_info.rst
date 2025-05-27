@@ -1,4 +1,3 @@
-.. _eso-headers:
 
 Obtaining extended information on data products
 ===============================================

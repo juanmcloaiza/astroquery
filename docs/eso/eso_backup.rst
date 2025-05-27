@@ -1,4 +1,3 @@
-.. _astroquery.eso:
 
 ******************************
 ESO Queries (`astroquery.eso`)

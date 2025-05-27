@@ -1,4 +1,3 @@
-.. _eso-download:
 
 Downloading datasets from the archive
 =====================================

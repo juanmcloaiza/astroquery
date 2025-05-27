@@ -1,4 +1,3 @@
-.. _eso-tap:
 
 Querying the TAP Service with ADQL
 ==================================

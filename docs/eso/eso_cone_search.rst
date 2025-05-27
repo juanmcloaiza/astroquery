@@ -1,5 +1,6 @@
+
 Simple Cone Search 
-------------------
+==================
 
 This example demonstrates how to perform a basic **cone search** for publicly available **HAWK-I Phase 3 (reduced) data products** around the Galactic Center (Sgr A\*) using :meth:`~astroquery.eso.EsoClass.query_surveys`.
 
