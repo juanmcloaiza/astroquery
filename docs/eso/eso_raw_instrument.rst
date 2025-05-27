@@ -12,8 +12,8 @@ The `query_main` method is particularly useful for querying instruments that **d
 - ``feros``: legacy spectrographs
 - ``APICAM``, ``MASCOT``: all-sky cameras and auxiliary systems
 
-Identify Available Instruments
-==============================
+Available Instruments
+=====================
 
 To begin retrieving raw data from the ESO Science Archive, you first need to identify the relevant instrument(s) for your search. Each instrument has its own dedicated query table accessible through the archive’s programmatic `TAP <https://archive.eso.org/programmatic/#TAP>`_ interface.
 
@@ -44,8 +44,8 @@ This list corresponds to the instruments currently available for programmatic ra
 
 Once you have identified the instrument of interest, you can proceed with constructing your query and retrieving raw data products.
 
-Inspect Available Query Constraints
-===================================
+Available Query Constraints
+===========================
 
 Once an instrument is selected—for example, ``midi`` — you can inspect the available queryable columns using the ``help=True`` keyword in the :meth:`~astroquery.eso.EsoClass.query_instrument` method. This is a useful first step to understand what metadata is available and how to structure your query.
 

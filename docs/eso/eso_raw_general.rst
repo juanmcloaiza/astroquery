@@ -12,8 +12,8 @@ In some cases, you may want to query the ESO Archive **without targeting a speci
 
 Functionally, :meth:`~astroquery.eso.EsoClass.query_main` works the same way as :meth:`~astroquery.eso.EsoClass.query_instrument`, except you don’t need to specify an instrument table name directly. You can still apply column filters, control the columns returned, and limit result counts.
 
-Identify Available Instruments
-==============================
+Available Instruments
+=====================
 
 To begin retrieving raw data from the ESO Science Archive, you may first want to know the relevant instrument(s) for your search. Each instrument has its own dedicated query table accessible through the archive’s programmatic `TAP <https://archive.eso.org/programmatic/#TAP>`_ interface.
 
@@ -44,8 +44,8 @@ This list corresponds to the instruments currently available for programmatic ra
 
 Once you have identified the instrument of interest, you can proceed with constructing your query and retrieving raw data products.
 
-Inspect Available Query Constraints
-===================================
+Available Query Constraints
+===========================
 
 We start by inspecting the available columns that can be queried by ``query_main`` with the ``help=True`` keyword. This will return a list of all columns available in the ``dbo.raw`` table, along with their data types, units, and any additional metadata such as ``xtype`` information.
 

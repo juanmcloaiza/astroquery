@@ -1,6 +1,6 @@
 
 ***************************
-Obtain Extended Information
+Extended Header Information
 ***************************
 
 Only a small subset of the keywords present in the data products can be obtained with :meth:`~astroquery.eso.EsoClass.query_instrument`, :meth:`~astroquery.eso.EsoClass.query_main`, :meth:`~astroquery.eso.EsoClass.query_surveys`, or :meth:`~astroquery.eso.EsoClass.query_tap_service`.

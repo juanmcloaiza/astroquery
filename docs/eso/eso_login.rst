@@ -58,8 +58,8 @@ The following examples show typical login and data retrieval workflows:
     INFO: Downloading file 1/1 https://dataportal.eso.org/dataPortal/file/ADP.2023-03-02T01:01:24.355
     ERROR: Access denied to https://dataportal.eso.org/dataPortal/file/ADP.2023-03-02T01:01:24.355
 
-Automatic Password Storage
-==========================
+Password Storage
+================
 
 As shown above, your password can be stored securely using the `keyring <https://pypi.org/project/keyring>`_ module by passing the argument ``store_password=True`` to ``Eso.login()``. For security reasons, password storage is disabled by default.
 

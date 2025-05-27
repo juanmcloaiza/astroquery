@@ -3,8 +3,8 @@
 Simple Cone Search 
 ******************
 
-Cone Search for Reduced Data
-============================
+Query for Reduced Data
+======================
 
 This example demonstrates how to perform a basic **cone search** for publicly available **HAWK-I reduced data products** around the Galactic Center (Sgr A\*) using :meth:`~astroquery.eso.EsoClass.query_surveys`.
 
@@ -43,8 +43,8 @@ With the defined coordinates and radius, we can now perform the cone search usin
 
 **Note**: The `cone_ra`, `cone_dec`, and `cone_radius` parameters are specified in degrees, but as float values (so we use `.value` to extract the float from the `astropy.units.Quantity`).
 
-Cone Search for Raw Data
-========================
+Query for Raw Data
+==================
 
 Similar cone search functionality is also available through :meth:`~astroquery.eso.EsoClass.query_instrument` and :meth:`~astroquery.eso.EsoClass.query_main` by passing the same ``cone_ra``, ``cone_dec``, and ``cone_radius`` arguments. 
 

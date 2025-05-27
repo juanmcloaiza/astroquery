@@ -7,8 +7,8 @@ In addition to raw observational files, the ESO Science Archive provides access 
 
 This section demonstrates how to search for and retrieve these reduced products using ``astroquery.eso``. The examples focus on **Phase 3 survey data**, which are organized by instrument, observing program, and survey tile.
 
-Identify Available Surveys
-==========================
+Available Surveys
+=================
 
 The list of available surveys can be obtained with :meth:`~astroquery.eso.EsoClass.list_surveys` as follows:
 
@@ -30,8 +30,8 @@ The list of available surveys can be obtained with :meth:`~astroquery.eso.EsoCla
     'VMC', 'VPHASplus', 'VST-ATLAS', 'VVV', 'VVVX', 'XQ-100', 'XSGRB', 'XSHOOTER',
     'XShootU', 'XSL', 'ZCOSMOS']
 
-Inspecting Available Query Constraints
-======================================
+Available Query Constraints
+===========================
 
 As before, list the possible columns in :meth:`~astroquery.eso.EsoClass.query_surveys` that can be queried with: 
 
