@@ -36,6 +36,7 @@ Getting Started
 .. toctree::
    :maxdepth: 2
 
+   eso
    eso_raw_instrument
    eso_raw_general
    eso_reduced
