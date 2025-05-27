@@ -1,6 +1,7 @@
 
+********************************************************
 Query the ESO Archive for Raw Data (Instrument-Specific)
-========================================================
+********************************************************
 
 The ESO Science Archive provides raw, unprocessed observational files and metadata directly from its suite of instruments. You can search either **instrument-specifically** using :meth:`~astroquery.eso.EsoClass.query_instrument`, which exposes instrument-unique columns and lets you apply hardware-tailored filters, or via the **global raw table** with :meth:`~astroquery.eso.EsoClass.query_main`, which offers a consistent set of columns across all instruments (omitting any instrument-specific fields). This flexibility allows you to perform highly specialized queries when you know exactly which instrument you need, or broad, cross-instrument searches when you want to compare data from multiple instruments. 
 

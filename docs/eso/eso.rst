@@ -34,12 +34,6 @@ ESO Queries (`astroquery.eso`)
    :maxdepth: 2
 
     eso_raw_instrument
-    eso_raw_general
-    eso_reduced
-    eso_tap
-    eso_cone_search
-    eso_header_info
-    eso_download
 
 Introduction
 ============
