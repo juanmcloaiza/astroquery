@@ -3,14 +3,9 @@
 Query for Raw Data (Instrument-Specific)
 ****************************************
 
-The `astroquery.eso` module provides several ways to search for data in the ESO Science Archive for raw data. This section focuses on the ***instrument-specific query interface** for raw data, while in another section we describe **generic queries** (e.g., using :meth:`~astroquery.eso.EsoClass.query_main`).
+The `astroquery.eso` module provides several ways to search for data in the ESO Science Archive for raw data. This section focuses on the ***instrument-specific query interface** for raw data (:meth:`~astroquery.eso.EsoClass.query_instrument`), while in another section we describe **generic queries** (e.g., using :meth:`~astroquery.eso.EsoClass.query_main`).
 
 In many cases, you will want to query the ESO Archive **for data from a specific instrument**. This is exactly what the :meth:`~astroquery.eso.EsoClass.query_instrument` method is designed for. It allows you to search instrument-specific tables, which expose metadata fields and filters unique to each instrument. Internally, this method queries the corresponding instrument table (e.g., ``ist.muse``) via ESO's `TAP service <https://archive.eso.org/programmatic/#TAP>`_. This approach is ideal when you need precise control over your query, such as filtering by instrument configuration, mode, or observational setup.
-
-The `query_main` method is particularly useful for querying instruments that **do not have dedicated instrument-specific tables**. Examples include:
-
-- ``feros``: legacy spectrographs
-- ``APICAM``, ``MASCOT``: all-sky cameras and auxiliary systems
 
 Available Instruments
 =====================
@@ -119,7 +114,7 @@ The ``columns`` argument controls which fields are returned in the results table
 
 .. tip::
 
-    Use ``query_main`` when you want to search **across all instruments**, for example to retrieve all observations of a specific source regardless of the instrument used.
+    Use :meth:`~astroquery.eso.EsoClass.query_main` when you want to search **across all instruments**, for example to retrieve all observations of a specific source regardless of the instrument used.
 
     .. doctest-remote-data::
 

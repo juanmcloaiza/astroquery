@@ -3,7 +3,7 @@
 Query for Raw Data (Generic)
 ****************************
 
-The `astroquery.eso` module provides several ways to search for data in the ESO Science Archive for raw data. This section focuses on the **generic query interface** for raw data, while in another section we describe **instrument-specific queries** (e.g., using :meth:`~astroquery.eso.EsoClass.query_instrument`).
+The `astroquery.eso` module provides several ways to search for data in the ESO Science Archive for raw data. This section focuses on the **generic query interface** for raw data (:meth:`~astroquery.eso.EsoClass.query_main`), while in another section we describe **instrument-specific queries** (e.g., using :meth:`~astroquery.eso.EsoClass.query_instrument`).
 
 In some cases, you may want to query the ESO Archive **without targeting a specific instrument**. This is exactly what the :meth:`~astroquery.eso.EsoClass.query_main` method is designed for. It allows access to the **global raw data table**, which combines metadata across all instruments. Internally, this method queries the ``dbo.raw`` table via ESO's `TAP service <https://archive.eso.org/programmatic/#TAP>`_, which you could also access directly using ADQL with a simple statement like:
 

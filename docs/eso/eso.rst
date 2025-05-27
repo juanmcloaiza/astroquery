@@ -86,8 +86,8 @@ Getting Started
    :maxdepth: 2
 
    eso_login
-   eso_raw_instrument
    eso_raw_general
+   eso_raw_instrument
    eso_reduced
    eso_tap
    eso_cone_search

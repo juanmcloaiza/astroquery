@@ -30,7 +30,7 @@ If coordinates are not known, you can use the :class:`~astropy.coordinates.SkyCo
     >>> dec = coords.dec
     >>> radius = 0.05 *u.deg 
 
-With the defined coordinates and radius, we can now perform the cone search using the `query_surveys` method of the `EsoClass`. This method allows us to filter results based on specific columns, such as `instrument_name`.
+With the defined coordinates and radius, we can now perform the cone search using :meth:`~astroquery.eso.EsoClass.query_surveys`. This method allows us to filter results based on specific columns, such as ``instrument_name``.
 
 .. doctest-remote-data::
 
@@ -41,7 +41,7 @@ With the defined coordinates and radius, we can now perform the cone search usin
     ...        cone_radius=radius.to(u.deg).value,
     ...        column_filters={"instrument_name": "HAWKI"})
 
-**Note**: The `cone_ra`, `cone_dec`, and `cone_radius` parameters are specified in degrees, but as float values (so we use `.value` to extract the float from the `astropy.units.Quantity`).
+**Note**: The ``cone_ra``, ``cone_dec``, and ``cone_radius`` parameters are specified in degrees, but as float values (so we use ``.value`` to extract the float from the ``astropy.units.Quantity``).
 
 Query for Raw Data
 ==================
