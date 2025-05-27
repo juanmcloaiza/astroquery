@@ -98,9 +98,7 @@ Getting Started
 Requirements
 ============
 
-Along with the main requirements of the `astroquery <https://pypi.org/project/astroquery>`_ package, the ESO module has some additional dependencies.
-
-The following packages are required for the use of this module:
+Along with the main requirements of the ``astroquery`` package, the following packages are required for the use of this module:
 
 * `lxml <https://pypi.org/project/lxml>`_
 

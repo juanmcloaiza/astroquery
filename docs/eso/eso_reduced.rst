@@ -1,7 +1,7 @@
 
-**************************************
-Query the ESO Archive for Reduced Data
-**************************************
+**********************
+Query for Reduced Data
+**********************
 
 In addition to raw observational files, the ESO Science Archive provides access to a wide range of **processed (reduced) data products**, also known as **Phase 3** data. These include science-ready images, spectra, and datacubes that have been calibrated and validated by ESO or by contributing survey teams.
 
@@ -30,8 +30,8 @@ The list of available surveys can be obtained with :meth:`~astroquery.eso.EsoCla
     'VMC', 'VPHASplus', 'VST-ATLAS', 'VVV', 'VVVX', 'XQ-100', 'XSGRB', 'XSHOOTER',
     'XShootU', 'XSL', 'ZCOSMOS']
 
-Inspecting Available Query Options
-==================================
+Inspecting Available Query Constraints
+======================================
 
 As before, list the possible columns in :meth:`~astroquery.eso.EsoClass.query_surveys` that can be queried with: 
 
@@ -55,7 +55,7 @@ As before, list the possible columns in :meth:`~astroquery.eso.EsoClass.query_su
     4559928
     [astroquery.eso.core]
 
-Query a Specific Survey With Constraints
+Query with Constraints (Specific Survey)
 ========================================
 
 Let's assume that we work with the ``HARPS`` survey, and that we are interested in
@@ -81,7 +81,7 @@ The returned table has a ``dp_id`` column, which can be used to retrieve the dat
 :meth:`~astroquery.eso.EsoClass.retrieve_data`: ``eso.retrieve_data(table["dp_id"][0])``.
 More details about this method in the following section.
 
-Query a Specific Instrument with Constraints
+Query with Constraints (Specific Instrument)
 ============================================
 
 You can also query a specific instrument using the same method (e.g., ``HARPS``). For example, to retrieve **all** available HARPS data products regardless of the associated survey towards ``HD203608`` is given the following query:
@@ -111,3 +111,16 @@ You can also query a specific instrument using the same method (e.g., ``HARPS``)
     So, for example, querying for ``eso.query_surveys(column_filters={"instrument_name": "HARPS"})`` will return all products taken with the HARPS instrument, across all programs and collections. In contrast, filtering on ``eso.query_surveys(surveys="HARPS"}`` will return only the `HARPS data reduced by ESO <https://doi.eso.org/10.18727/archive/33>`_.
 
     You can inspect the collection for each result via the ``obs_collection`` column in your results table.
+
+Download Data
+=============
+
+To download the data returned by the query, you can use the :meth:`~astroquery.eso.EsoClass.retrieve_data` method. This method takes a list of data product IDs (``dp_id``) and downloads the corresponding files from the ESO archive.
+
+.. doctest-remote-data::
+    >>> eso.retrieve_data(table["dp_id"])
+
+The ``data_files`` points to the decompressed dataset filenames that have been locally downloaded. The default location of the decompressed datasets can be adjusted by providing a ``destination`` keyword in the call to :meth:`~astroquery.eso.EsoClass.retrieve_data`.
+
+.. doctest-skip::
+    >>> data_files = eso.retrieve_data(table["dp_id"], destination="./eso_data/")

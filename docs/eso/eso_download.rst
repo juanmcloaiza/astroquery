@@ -1,7 +1,7 @@
 
-*************************************
-Download datasets from the archive
-*************************************
+*****************
+Download datasets
+*****************
 
 Continuing from the query with constraints example, the first two datasets are selected,
 using their data product IDs ``dp_id``, and retrieved from the ESO archive.
@@ -23,7 +23,7 @@ using their data product IDs ``dp_id``, and retrieved from the ESO archive.
      '/Users/foobar/.astropy/cache/astroquery/Eso/MIDI.2007-02-07T07:02:49.000.fits']
 
 The file names, returned in data_files, points to the decompressed datasets
-(without the .Z extension) that have been locally downloaded. The default location (in the astropy cache) of the decompressed datasets can be adjusted by providing a ``destination`` keyword in the call to :meth:`~astroquery.eso.EsoClass.retrieve_data`.
+(without the .Z extension) that have been locally downloaded. The default location of the decompressed datasets can be adjusted by providing a ``destination`` keyword in the call to :meth:`~astroquery.eso.EsoClass.retrieve_data`.
 
 .. doctest-skip::
     >>> data_files = eso.retrieve_data(table['dp_id'][:2], destination='./eso_data/')
@@ -42,7 +42,6 @@ Available options:
 
     >>> # Download science data with raw calibrations
     >>> data_files = eso.retrieve_data(table['dp_id'][:2], with_calib="raw")
-
 
 .. doctest-skip::
 

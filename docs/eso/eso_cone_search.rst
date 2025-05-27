@@ -35,7 +35,7 @@ With the defined coordinates and radius, we can now perform the cone search usin
 .. doctest-remote-data::
 
     >>> # Cone search
-    >>> result = eso.query_surveys(
+    >>> table = eso.query_surveys(
     ...        cone_ra=ra.value,
     ...        cone_dec=dec.value,
     ...        cone_radius=radius.to(u.deg).value,
@@ -55,7 +55,7 @@ Cone search for raw data products can be performed using the instrument-specific
 
 .. doctest-remote-data::
 
-    >>> result = eso.query_instrument(
+    >>> table = eso.query_instrument(
     ...             "HAWKI",
     ...             cone_ra=ra,
     ...             cone_dec=dec,
@@ -68,8 +68,21 @@ Cone search for raw data products can also be performed using the more generic m
 
 .. doctest-remote-data::
 
-    >>> result = eso.query_main(
+    >>> table = eso.query_main(
     ...             "HAWKI",
     ...             cone_ra=ra,
     ...             cone_dec=dec,
     ...             cone_radius=radius
+
+Download Data
+=============
+
+To download the data returned by the query, you can use the :meth:`~astroquery.eso.EsoClass.retrieve_data` method. This method takes a list of data product IDs (``dp_id``) and downloads the corresponding files from the ESO archive.
+
+.. doctest-remote-data::
+    >>> eso.retrieve_data(table["dp_id"])
+
+The ``data_files`` points to the decompressed dataset filenames that have been locally downloaded. The default location of the decompressed datasets can be adjusted by providing a ``destination`` keyword in the call to :meth:`~astroquery.eso.EsoClass.retrieve_data`.
+
+.. doctest-skip::
+    >>> data_files = eso.retrieve_data(table["dp_id"], destination="./eso_data/")

@@ -1,12 +1,19 @@
 
-********************************************************
-Query the ESO Archive for Raw Data (Instrument-Specific)
-********************************************************
+****************************************
+Query for Raw Data (Instrument-Specific)
+****************************************
 
-The ESO Science Archive provides raw, unprocessed observational files and metadata directly from its suite of instruments. You can search either **instrument-specifically** using :meth:`~astroquery.eso.EsoClass.query_instrument`, which exposes instrument-unique columns and lets you apply hardware-tailored filters, or via the **global raw table** with :meth:`~astroquery.eso.EsoClass.query_main`, which offers a consistent set of columns across all instruments (omitting any instrument-specific fields). This flexibility allows you to perform highly specialized queries when you know exactly which instrument you need, or broad, cross-instrument searches when you want to compare data from multiple instruments. 
+The `astroquery.eso` module provides several ways to search for data in the ESO Science Archive for raw data. This section focuses on the ***instrument-specific query interface** for raw data, while in another section we describe **generic queries** (e.g., using :meth:`~astroquery.eso.EsoClass.query_main`).
 
-Identifying Available Instruments
-=================================
+In many cases, you will want to query the ESO Archive **for data from a specific instrument**. This is exactly what the :meth:`~astroquery.eso.EsoClass.query_instrument` method is designed for. It allows you to search instrument-specific tables, which expose metadata fields and filters unique to each instrument. Internally, this method queries the corresponding instrument table (e.g., ``ist.muse``) via ESO's `TAP service <https://archive.eso.org/programmatic/#TAP>`_. This approach is ideal when you need precise control over your query, such as filtering by instrument configuration, mode, or observational setup.
+
+The `query_main` method is particularly useful for querying instruments that **do not have dedicated instrument-specific tables**. Examples include:
+
+- ``feros``: legacy spectrographs
+- ``APICAM``, ``MASCOT``: all-sky cameras and auxiliary systems
+
+Identify Available Instruments
+==============================
 
 To begin retrieving raw data from the ESO Science Archive, you first need to identify the relevant instrument(s) for your search. Each instrument has its own dedicated query table accessible through the archive’s programmatic `TAP <https://archive.eso.org/programmatic/#TAP>`_ interface.
 
@@ -37,8 +44,8 @@ This list corresponds to the instruments currently available for programmatic ra
 
 Once you have identified the instrument of interest, you can proceed with constructing your query and retrieving raw data products.
 
-Inspecting available query options
-==================================
+Inspect Available Query Constraints
+===================================
 
 Once an instrument is selected—for example, ``midi`` — you can inspect the available queryable columns using the ``help=True`` keyword in the :meth:`~astroquery.eso.EsoClass.query_instrument` method. This is a useful first step to understand what metadata is available and how to structure your query.
 
@@ -74,8 +81,8 @@ on the ESO `Programmatic Access <https://archive.eso.org/programmatic/#TAP>`_ we
 
 ``select column_name, description from TAP_SCHEMA.columns where table_name = 'ist.midi'``
 
-Querying with constraints
-=========================
+Query with Constraints
+======================
 
 Once the available query columns have been inspected (e.g., via ``help=True``), you can construct a constrained query to retrieve relevant datasets. For example, suppose you want to retrieve MIDI observations of the target ``NGC 4151`` that were taken between ``2008-01-01`` and ``2009-05-12``.
 
@@ -131,3 +138,16 @@ The ``columns`` argument controls which fields are returned in the results table
         }
 
         table = eso.query_instrument("midi", column_filters=column_filters)
+
+Download Data
+=============
+
+To download the data returned by the query, you can use the :meth:`~astroquery.eso.EsoClass.retrieve_data` method. This method takes a list of data product IDs (``dp_id``) and downloads the corresponding files from the ESO archive.
+
+.. doctest-remote-data::
+    >>> eso.retrieve_data(table["dp_id"])
+
+The ``data_files`` points to the decompressed dataset filenames that have been locally downloaded. The default location of the decompressed datasets can be adjusted by providing a ``destination`` keyword in the call to :meth:`~astroquery.eso.EsoClass.retrieve_data`.
+
+.. doctest-skip::
+    >>> data_files = eso.retrieve_data(table["dp_id"], destination="./eso_data/")
