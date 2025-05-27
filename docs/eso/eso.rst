@@ -30,10 +30,19 @@ ESO Queries (`astroquery.eso`)
     Please review your queries carefully and update them accordingly to ensure compatibility with the new astroquery versions.
     See section :ref:`column-filters-fix` at the end of this document. 
 
+Getting Started
+===============
+
 .. toctree::
    :maxdepth: 2
 
     eso_raw_instrument
+    eso_raw_general
+    eso_reduced
+    eso_tap
+    eso_cone_search
+    eso_header_info
+    eso_download
 
 Introduction
 ============
