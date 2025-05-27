@@ -1,13 +1,14 @@
 
+**************************************
 Query the ESO Archive for Reduced Data
-======================================
+**************************************
 
 In addition to raw observational files, the ESO Science Archive provides access to a wide range of **processed (reduced) data products**, also known as **Phase 3** data. These include science-ready images, spectra, and datacubes that have been calibrated and validated by ESO or by contributing survey teams.
 
 This section demonstrates how to search for and retrieve these reduced products using ``astroquery.eso``. The examples focus on **Phase 3 survey data**, which are organized by instrument, observing program, and survey tile.
 
-Identify available surveys
---------------------------
+Identify Available Surveys
+==========================
 
 The list of available surveys can be obtained with :meth:`~astroquery.eso.EsoClass.list_surveys` as follows:
 
@@ -29,8 +30,8 @@ The list of available surveys can be obtained with :meth:`~astroquery.eso.EsoCla
     'VMC', 'VPHASplus', 'VST-ATLAS', 'VVV', 'VVVX', 'XQ-100', 'XSGRB', 'XSHOOTER',
     'XShootU', 'XSL', 'ZCOSMOS']
 
-Inspecting available query options
-----------------------------------
+Inspecting Available Query Options
+==================================
 
 As before, list the possible columns in :meth:`~astroquery.eso.EsoClass.query_surveys` that can be queried with: 
 
@@ -54,8 +55,8 @@ As before, list the possible columns in :meth:`~astroquery.eso.EsoClass.query_su
     4559928
     [astroquery.eso.core]
 
-Query a specific survey with constraints
-----------------------------------------
+Query a Specific Survey With Constraints
+========================================
 
 Let's assume that we work with the ``HARPS`` survey, and that we are interested in
 target ``HD203608``. The archive can be queried as follows:
@@ -80,8 +81,8 @@ The returned table has a ``dp_id`` column, which can be used to retrieve the dat
 :meth:`~astroquery.eso.EsoClass.retrieve_data`: ``eso.retrieve_data(table["dp_id"][0])``.
 More details about this method in the following section.
 
-Query a specific instrument with constraints
---------------------------------------------
+Query a Specific Instrument with Constraints
+============================================
 
 You can also query a specific instrument using the same method (e.g., ``HARPS``). For example, to retrieve **all** available HARPS data products regardless of the associated survey towards ``HD203608`` is given the following query:
 

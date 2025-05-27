@@ -1,6 +1,7 @@
 
+********************************************
 Query the ESO Archive for Raw Data (Generic)
-============================================
+********************************************
 
 In some cases, you may want to query the ESO Science Archive without targeting a specific instrument. This is what the :meth:`~astroquery.eso.EsoClass.query_main` method is designed for. It allows access to the global raw data table, which combines metadata across all instruments. Internally, this method queries the ``dbo.raw`` table via ESO's `TAP service <https://archive.eso.org/programmatic/#TAP>`_, which you could also access directly using ADQL with a simple statement like:
 
@@ -15,9 +16,9 @@ This method is particularly useful for querying instruments that do not have a d
 - e.g. ``APICAM``, ``MASCOT``: all-sky cameras or auxiliary systems
 
 Inspecting available query options
-----------------------------------
+==================================
 
-As before, we start by inspecting the available columns that can be queried with the following:
+We start by inspecting the available columns that can be queried by ``query_main`` with the ``help=True`` keyword. This will return a list of all columns available in the ``dbo.raw`` table, along with their data types, units, and any additional metadata such as ``xtype`` information.
 
 .. doctest-remote-data::
 
@@ -40,7 +41,7 @@ As before, we start by inspecting the available columns that can be queried with
     [astroquery.eso.core]
 
 Querying with constraints
--------------------------
+=========================
 
 Now that we know which of the columns are available for queries, we can, for example, retrieving all-sky images from the ``APICAM`` instrument using the ``LUMINANCE`` filter, on a single night (i.e. 2019-04-26):
 
@@ -76,8 +77,6 @@ Now that we know which of the columns are available for queries, we can, for exa
     >>> eso.maxrec = -1  # disables the row limit entirely
 
 You can also set ``eso.maxrec`` to a smaller/larger number to truncate/allow large queries.
-
-.. _eso-reduced-data:
 
 .. tip::
 

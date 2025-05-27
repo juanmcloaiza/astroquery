@@ -30,21 +30,6 @@ ESO Queries (`astroquery.eso`)
     Please review your queries carefully and update them accordingly to ensure compatibility with the new astroquery versions.
     See section :ref:`column-filters-fix` at the end of this document. 
 
-Getting Started
-===============
-
-.. toctree::
-   :maxdepth: 2
-
-   eso
-   eso_raw_instrument
-   eso_raw_general
-   eso_reduced
-   eso_tap
-   eso_cone_search
-   eso_header_info
-   eso_download
-
 Introduction
 ============
 
@@ -76,214 +61,48 @@ There are multiple ways to access the archive:
 
 This documentation focuses on the last method: accessing the archive programmatically using the ``astroquery.eso`` module. This Python interface allows users to search for both raw and reduced data, retrieve metadata, and download data products directly using dataset identifiers. Proprietary access is supported via authentication with the `ESO User Portal <https://www.eso.org/UserPortal>`_.
 
-Requirements
-============
+Quick Start
+===========
 
-The following packages are required for the use of this module:
+.. doctest-skip::
 
-* `keyring <https://pypi.org/project/keyring>`_
-* `lxml <https://pypi.org/project/lxml>`_
-* `requests <https://pypi.org/project/requests>`_ >= 2.4.0
+    >>> from astroquery.eso import Eso                                                      # Import the ESO module
+    >>> eso = Eso()                                                                         # Create an instance of the ESO class
+    >>> table_raw = eso.query_main("muse", column_filters={"object": "NGC300"})             # Query raw data 
+    >>> table_reduced = eso.query_surveys("muse", column_filters={"target_name": "NGC300"}) # Query reduced data
+    >>> eso.retrieve_data(table_raw['dp_id'])                                               # Download raw data products
+    >>> eso.retrieve_data(table_reduced['dp_id'])                                           # Retrieve reduced data products
 
-.. _eso-user-authentication:
+By default, the maximum number of results returned by a query is by default set to 1000, but this can be adjusted as needed. To return all results without truncation, set the ``maxrec`` attribute to -1:
 
+.. doctest-skip::
+
+    >>> eso.maxrec = -1 # Return all results
 
 Getting Started
 ===============
 
-In the examples provided in the accompanying notebooks, we will create an instance of the ESO class using the following. 
-
-.. doctest-skip::
-
-    >>> from astroquery.eso import Eso
-    >>> eso = Eso()
-
-This instance will be used to demonstrate various queries to the ESO Archive, including searching for raw data and data products from a range of instruments and sources.
-
-We also set the maximum number of results returned by the queries to 3, where the default value is 1000. This can be adjusted as needed.
-
-.. doctest-skip::
-
-    >>> eso.maxrec = 3       # Return only 100 results
-
-To return all results without truncation, you can set the ``maxrec`` attribute to -1:
-
-.. doctest-skip::
-
-    >>> eso.maxrec = -1    # Return all results without truncation
-
-Authentication with the ESO User Portal
-=======================================
-
-Most datasets in the ESO Science Archive are publicly available and can be downloaded anonymously without requiring authentication. However, access to proprietary datasets—such as those under active proprietary periods—is restricted to authorized users (e.g., PIs of observing programs and their designated delegates). These users must authenticate via the `ESO User Portal <https://www.eso.org/UserPortal>`_.
-
-Authentication is handled using the :meth:`~astroquery.query.QueryWithLogin.login` method. This command initiates a secure login session via the ESO Single Sign-On (SSO) service. It integrates with the `keyring <https://pypi.org/project/keyring>`_ module to securely store your password in your system’s credential manager. After the first login, you should not need to re-enter your credentials for subsequent sessions on the same machine.
-
-Authentication is required when:
-
-- Downloading proprietary files (not yet public)
-- Accessing services that require ESO user privileges
-
-Login Examples
---------------
-
-The following examples show typical login and data retrieval workflows:
-
-.. doctest-skip::
-
-    >>> # First example: TEST is not a valid username, it will fail
-    >>> eso.login(username="TEST") # doctest: +SKIP
-    WARNING: No password was found in the keychain for the provided username. [astroquery.query]
-    TEST, enter your password:
-
-    INFO: Authenticating TEST on https://www.eso.org/sso ... [astroquery.eso.core]
-    ERROR: Authentication failed! [astroquery.eso.core]
-
-.. doctest-skip::
-
-    >>> # Second example: pretend ICONDOR is a valid username
-    >>> eso.login(username="ICONDOR", store_password=True) # doctest: +SKIP
-    WARNING: No password was found in the keychain for the provided username. [astroquery.query]
-    ICONDOR, enter your password:
-
-    INFO: Authenticating ICONDOR on https://www.eso.org/sso ... [astroquery.eso.core]
-    INFO: Authentication successful! [astroquery.eso.core]
-
-.. doctest-skip::
-
-    >>> # After the first login, your password has been stored
-    >>> eso.login(username="ICONDOR") # doctest: +SKIP
-    INFO: Authenticating ICONDOR on https://www.eso.org/sso ... [astroquery.eso.core]
-    INFO: Authentication successful! [astroquery.eso.core]
-
-.. doctest-skip::
-
-    >>> # Successful download of a public file (with or without login)
-    >>> eso.retrieve_data("AMBER.2006-03-14T07:40:19.830") # doctest: +SKIP
-    INFO: Downloading file 1/1 https://dataportal.eso.org/dataPortal/file/AMBER.2006-03-14T07:40:19.830
-    INFO: Successfully downloaded dataset AMBER.2006-03-14T07:40:19.830
-
-.. doctest-skip::
-
-    >>> # Access denied to a restricted-access file (as anonymous user or as authenticated but not authorised user)
-    >>> eso.retrieve_data("ADP.2023-03-02T01:01:24.355") # doctest: +SKIP
-    INFO: Downloading file 1/1 https://dataportal.eso.org/dataPortal/file/ADP.2023-03-02T01:01:24.355
-    ERROR: Access denied to https://dataportal.eso.org/dataPortal/file/ADP.2023-03-02T01:01:24.355
-
-Automatic Password Storage
---------------------------
-
-As shown above, your password can be stored securely using the `keyring <https://pypi.org/project/keyring>`_ module by passing the argument ``store_password=True`` to ``Eso.login()``. For security reasons, password storage is disabled by default.
-
-.. warning::
-
-   **MAKE SURE YOU TRUST THE MACHINE WHERE YOU USE THIS FUNCTIONALITY!!!**
-
-   When using the ``store_password=True`` option, your password is stored in your system’s keyring. This provides secure local storage, but only do this on machines you fully trust.
-
-**Note:** You can delete your stored password at any time with the following command:
-
-.. doctest-skip::
-
-    >>> keyring.delete_password("astroquery:www.eso.org", "your_username")
-
-Automatic Login
----------------
-
-To avoid having to enter your username every session, you can configure a default username in the Astroquery configuration file. This file is located as described in the `astropy.config documentation <https://docs.astropy.org/en/stable/config/index.html>`_.
-
-Add the following to the ``[eso]`` section of your config file:
-
-.. doctest-skip::
-
-    [eso]
-    username = ICONDOR
-
-Once set, you can simply call ``eso.login()`` without specifying a username:
-
-.. doctest-skip::
-
-    >>> eso.login() # doctest: +SKIP
-    ICONDOR, enter your ESO password:
-
-**Note:** If automatic login is configured and the password is stored, other ``Eso`` methods (e.g. ``retrieve_data()``) can log you in automatically when needed.
-
-
-Troubleshooting
-===============
-
-Clearing the cache
-------------------
-
-If you encounter repeated query failures or see outdated or inconsistent results, you may be dealing with a stale or corrupted local cache. You can clear the entire Astropy cache for ESO with the following command:
-
-.. doctest-skip::
-
-    >>> from astroquery.eso import Eso
-    >>> Eso.clear_cache()
-
-This will remove all cached ESO queries and downloaded metadata files. Data products already downloaded will remain unless manually deleted.
-
-.. _column-filters-fix:
-
-Using the correct ``column_filters``
-------------------------------------
-
-If your query fails or silently returns no results, it might be because you're using column names that are **accepted in the ESO web interface (WDB)** but **not supported by the TAP/ADQL interface** that now is used within ``astroquery.eso``. A common case involves using ``stime`` and ``etime``, which are not valid TAP fields. Instead, use ``exp_start``, the TAP-compliant column representing the observation start time. This field supports SQL-style date filtering.
-
-Below are examples of invalid filter usage and their corrected TAP-compatible versions.
-
-Filtering between two dates
-^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. doctest-skip::
-
-    # ❌ Invalid (WDB-specific fields, not recognized by TAP)
-    column_filters = {
-        "stime": "2024-01-01",
-        "etime": "2024-12-31"
-    }
-
-.. doctest-skip::
-
-    # ✅ Correct (TAP-compliant syntax using 'exp_start')
-    column_filters = {
-        "exp_start": "between '2024-01-01' and '2024-12-31'"
-    }
-
-Filtering with only a start date
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. doctest-skip::
-
-    # ❌ Invalid
-    column_filters = {
-        "stime": "2024-01-01"
-    }
-
-.. doctest-skip::
-
-    # ✅ Correct
-    column_filters = {
-        "exp_start": "> '2024-01-01'"
-    }
-
-Filtering with only an end date
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-.. doctest-skip::
-
-    # ❌ Invalid
-    column_filters = {
-        "etime": "2024-12-31"
-    }
-
-.. doctest-skip::
-
-    # ✅ Correct
-    column_filters = {
-        "exp_start": "< '2024-12-31'"
-    }
+.. toctree::
+   :maxdepth: 2
+
+   eso_login
+   eso_raw_instrument
+   eso_raw_general
+   eso_reduced
+   eso_tap
+   eso_cone_search
+   eso_header_info
+   eso_download
+   eso_troubleshooting
+
+Requirements
+============
+
+Along with the main requirements of the `astroquery <https://pypi.org/project/astroquery>`_ package, the ESO module has some additional dependencies.
+
+The following packages are required for the use of this module:
+
+* `lxml <https://pypi.org/project/lxml>`_
 
 Reference/API
 =============

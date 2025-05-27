@@ -1,11 +1,11 @@
 
+***********************************************
 Obtaining extended information on data products
-===============================================
+***********************************************
 
-Only a small subset of the keywords present in the data products can be obtained
-with :meth:`~astroquery.eso.EsoClass.query_instrument`, :meth:`~astroquery.eso.EsoClass.query_main`, :meth:`~astroquery.eso.EsoClass.query_surveys`, or :meth:`~astroquery.eso.EsoClass.query_tap_service`.
-There is however a way to get the full primary header of the FITS data products,
-using :meth:`~astroquery.eso.EsoClass.get_headers`.
+Only a small subset of the keywords present in the data products can be obtained with :meth:`~astroquery.eso.EsoClass.query_instrument`, :meth:`~astroquery.eso.EsoClass.query_main`, :meth:`~astroquery.eso.EsoClass.query_surveys`, or :meth:`~astroquery.eso.EsoClass.query_tap_service`.
+
+There is however a way to get the full primary header of the FITS data products, using :meth:`~astroquery.eso.EsoClass.get_headers`.
 
 .. doctest-remote-data::
 
@@ -30,5 +30,4 @@ using :meth:`~astroquery.eso.EsoClass.get_headers`.
     MIDI.2007-02-07T07:23:38.695   True     16 ... MIDI.2007-02-07T07:20:06.695.fits MIDI.2007-02-07T07:22:57.000.fits MIDI.2007-02-07T07:23:38.695.fits
 
 
-As shown above, for each data product ID (``DP.ID``; note that this is equivalent to "dp_id" in ``table``), the full header (336 columns in our case) of the archive
-FITS file is collected. In the above table ``table_headers``, there are as many rows as in the column ``table['dp_id']``.
+As shown above, for each data product ID (``DP.ID``; note that this is equivalent to "dp_id" in ``table``), the full header (336 columns in our case) of the archive FITS file is collected. In the above table ``table_headers``, there are as many rows as in the column ``table['dp_id']``.

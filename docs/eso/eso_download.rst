@@ -1,6 +1,7 @@
 
-Downloading datasets from the archive
-=====================================
+*************************************
+Download datasets from the archive
+*************************************
 
 Continuing from the query with constraints example, the first two datasets are selected,
 using their data product IDs ``dp_id``, and retrieved from the ESO archive.

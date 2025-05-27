@@ -5,8 +5,8 @@ Query the ESO Archive for Raw Data (Instrument-Specific)
 
 The ESO Science Archive provides raw, unprocessed observational files and metadata directly from its suite of instruments. You can search either **instrument-specifically** using :meth:`~astroquery.eso.EsoClass.query_instrument`, which exposes instrument-unique columns and lets you apply hardware-tailored filters, or via the **global raw table** with :meth:`~astroquery.eso.EsoClass.query_main`, which offers a consistent set of columns across all instruments (omitting any instrument-specific fields). This flexibility allows you to perform highly specialized queries when you know exactly which instrument you need, or broad, cross-instrument searches when you want to compare data from multiple instruments. 
 
-Identifying Available Instrument-Specific Queries
--------------------------------------------------
+Identifying Available Instruments
+=================================
 
 To begin retrieving raw data from the ESO Science Archive, you first need to identify the relevant instrument(s) for your search. Each instrument has its own dedicated query table accessible through the archive’s programmatic `TAP <https://archive.eso.org/programmatic/#TAP>`_ interface.
 
@@ -38,15 +38,15 @@ This list corresponds to the instruments currently available for programmatic ra
 Once you have identified the instrument of interest, you can proceed with constructing your query and retrieving raw data products.
 
 Inspecting available query options
-----------------------------------
+==================================
 
-Once an instrument is selected—for example, ``midi``—you can inspect the available queryable columns using the ``help=True`` keyword in the :meth:`~astroquery.eso.EsoClass.query_instrument` method. This is a useful first step to understand what metadata is available and how to structure your query.
+Once an instrument is selected—for example, ``midi`` — you can inspect the available queryable columns using the ``help=True`` keyword in the :meth:`~astroquery.eso.EsoClass.query_instrument` method. This is a useful first step to understand what metadata is available and how to structure your query.
 
 The output includes column names, data types, units, and, where applicable, ``xtype`` information to indicate more specific column content. For example, a column with datatype ``char`` may represent a timestamp or a sky region, which is reflected in the ``xtype`` field (e.g., ``timestamp`` or ``adql:REGION``).
 
 .. doctest-remote-data::
 
-    >>> eso.query_instrument("midi", help=True)  # doctest: +IGNORE_OUTPUT
+    >>> eso.query_instrument("midi", help=True)  
     INFO:
     Columns present in the table ist.midi:
         column_name     datatype    xtype         unit
@@ -75,7 +75,7 @@ on the ESO `Programmatic Access <https://archive.eso.org/programmatic/#TAP>`_ we
 ``select column_name, description from TAP_SCHEMA.columns where table_name = 'ist.midi'``
 
 Querying with constraints
--------------------------
+=========================
 
 Once the available query columns have been inspected (e.g., via ``help=True``), you can construct a constrained query to retrieve relevant datasets. For example, suppose you want to retrieve MIDI observations of the target ``NGC 4151`` that were taken between ``2008-01-01`` and ``2009-05-12``.
 
@@ -109,3 +109,25 @@ The ``columns`` argument controls which fields are returned in the results table
     - String filters (like ``object``) are matched case-insensitively.
     - Temporal filters on fields like ``exp_start`` or ``release_date`` can use SQL-style syntax (e.g. ``between 'YYYY-MM-DD' and 'YYYY-MM-DD'``).
     - Column names are case-sensitive in Python, so ensure they match exactly.
+
+.. tip::
+
+    Use ``query_main`` when you want to search **across all instruments**, for example to retrieve all observations of a specific source regardless of the instrument used.
+
+    .. doctest-remote-data::
+
+        table = eso.query_main(column_filters={"object": "NGC 3627"})
+
+    Use ``query_instrument`` when you want a more **refined, instrument-specific search**, applying filters that are only available for a particular instrument (e.g. instrument modes, configurations, or ambient conditions).
+
+    .. doctest-remote-data::
+
+        column_filters = {
+            "dp_cat": "SCIENCE",           # Science data only
+            "ins_opt1_name": "HIGH_SENS",  # High sensitivity mode
+            "night_flag": "night",         # Nighttime observations only
+            "moon_illu": "< 0",            # No moon (below horizon)
+            "lst": "between 0 and 6"       # Local sidereal time early in the night
+        }
+
+        table = eso.query_instrument("midi", column_filters=column_filters)
