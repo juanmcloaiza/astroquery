@@ -51,7 +51,7 @@ As always, it is good practice to check the available columns to search in the i
 
 .. doctest-remote-data::
 
-    >>> eso.query_instrument("APEX", help=True) # get help on the query_instrument method
+    >>> eso.query_instrument("APEX", help=True) 
     INFO: 
     Columns present in the table ist.APEX:
        column_name    datatype    xtype     unit
@@ -119,16 +119,10 @@ As always, it is good practice to check the available columns to search in the i
     913029
      [astroquery.eso.core]
 
-We now query for raw data from the APEX instrument, using the proposal ID we retrieved from the previous query.
-
-In this case, we know there is only **one** APEX proposal ID, but if there were multiple IDs, we would need to loop through them.
-
 Query Raw APEX data
 ===================
 
 We now query for raw data from the APEX instrument, using the proposal ID we retrieved from the previous query.
-
-In this case, we know there is only **one** APEX proposal ID, but if there were multiple IDs, we would need to loop through them.
 
 .. doctest-remote-data::
 
@@ -138,13 +132,15 @@ In this case, we know there is only **one** APEX proposal ID, but if there were 
     >>> print(f"Project ID: {project_id}")
     Project ID: E-094.C-0935A-2014
 
+In this case, we know there is only **one** APEX proposal ID, but if there were multiple IDs, we would need to loop through them.
+
 .. tip::
     In the :meth:`~astroquery.eso.EsoClass.query_surveys` query, the ``"proposal_id"`` column refers to the **ESO programme ID**. In contrast, in an APEX-specific query using :meth:`~astroquery.eso.EsoClass.query_instrument`, the ``"prog_id"`` column also refers to the **ESO programme ID**, **not** the **APEX proposal ID**. The APEX proposal ID is instead found in the ``"project_id"`` column in the :meth:`~astroquery.eso.EsoClass.query_instrument` query—this is the value used to identify APEX Quick Look products.
 
 Query APEX Quick Look products
 ==============================
 
-As always, we can check the available columns to search in the query.
+We can check the available columns to search in the query.
 
 .. doctest-remote-data::
 
@@ -170,7 +166,7 @@ As always, we can check the available columns to search in the query.
     282296
      [astroquery.eso.core]
 
-We can now query for the APEX Quick Look products using the APEX proposal ID (``project_id``) we retrieved from the previous query.
+And now, query for the APEX Quick Look products using the APEX proposal ID (``project_id``) we retrieved from the previous query.
 
 .. doctest-remote-data::
 
