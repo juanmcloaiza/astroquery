@@ -299,19 +299,20 @@ class EsoClass(QueryWithLogin):
         query_str : str
             The ADQL query string to be executed.
         authenticated : bool, optional
-            If `True`, the query is run as an authenticated user.
+            If ``True``, the query is run as an authenticated user.
             Authentication must be performed beforehand via
-            :meth:`~astroquery.eso.EsoClass.login`. Note that
-            authenticated queries may be slower. Default is `False`.
+            :meth:`astroquery.eso.EsoClass.login`. Authenticated queries
+            may be slower. Default is ``False``.
 
         Returns
         -------
         astropy.table.Table or None
-            The query results in an `~astropy.table.Table`, or `None`
-            if no data is found.
+            The query results in an :class:`~astropy.table.Table`, or
+            ``None`` if no data is found.
 
         Examples
         --------
+        >>> from astroquery.eso import Eso
         >>> eso_instance = Eso()
         >>> eso_instance.query_tap_service("SELECT * FROM ivoa.ObsCore")
         """
