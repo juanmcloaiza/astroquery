@@ -89,6 +89,7 @@ Getting Started
    eso_raw_general
    eso_raw_instrument
    eso_reduced
+   eso_apex
    eso_tap
    eso_cone_search
    eso_header_info
