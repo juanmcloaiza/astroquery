@@ -294,22 +294,26 @@ class EsoClass(QueryWithLogin):
         """
         Query the ESO TAP service using a free ADQL string.
 
-        :param query_str: The ADQL query string to be executed.
-        :type query_str: str
+        Parameters
+        ----------
+        query_str : str
+            The ADQL query string to be executed.
+        authenticated : bool, optional
+            If `True`, the query is run as an authenticated user.
+            Authentication must be performed beforehand via
+            :meth:`~astroquery.eso.EsoClass.login`. Note that
+            authenticated queries may be slower. Default is `False`.
 
-        :param authenticated: If `True`, the query is run as an authenticated user.
-            Authentication must be done beforehand via :meth:`~astroquery.eso.EsoClass.login`.
-            Note that authenticated queries are slower. Default is `False`.
-        :type authenticated: bool
+        Returns
+        -------
+        astropy.table.Table or None
+            The query results in an `~astropy.table.Table`, or `None`
+            if no data is found.
 
-        :returns: The query results in an `~astropy.table.Table`, or `None` if no data is found.
-        :rtype: Optional[`~astropy.table.Table`]
-
-        **Example usage**::
-
-            eso_instance = Eso()
-
-            eso_instance.query_tap_service("SELECT * FROM ivoa.ObsCore")
+        Examples
+        --------
+        >>> eso_instance = Eso()
+        >>> eso_instance.query_tap_service("SELECT * FROM ivoa.ObsCore")
         """
         table_to_return = None
         tap_service = self._tap_service(authenticated)
