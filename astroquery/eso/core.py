@@ -465,7 +465,7 @@ class EsoClass(QueryWithLogin):
             and ``columns``. Default is ``False``.
         authenticated : bool, optional
             If ``True``, runs the query as an authenticated user.
-            Authentication must be done beforehand via 
+            Authentication must be done beforehand via
             :meth:`~astroquery.eso.EsoClass.login`. Authenticated queries may be slower.
             Default is ``False``.
         column_filters : dict or None, optional
@@ -555,7 +555,7 @@ class EsoClass(QueryWithLogin):
             and ``columns``. Default is ``False``.
         authenticated : bool, optional
             If ``True``, runs the query as an authenticated user.
-            Authentication must be done beforehand via 
+            Authentication must be done beforehand via
             :meth:`~astroquery.eso.EsoClass.login`. Authenticated queries may be slower.
             Default is ``False``.
         column_filters : dict or None, optional
