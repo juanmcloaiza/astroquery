@@ -1,6 +1,6 @@
 on:
   schedule:
-    - cron:  '20 * * * *'
+    - cron:  '25 * * * *'
     # scheduled at 16:00 every day -- check that it works and change to 2-minutes-to-midnight
   workflow_dispatch:
 
