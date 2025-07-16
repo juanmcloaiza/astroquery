@@ -1,35 +1,26 @@
+name: GitHub Actions Demo
+run-name: ${{ github.actor }} is testing out GitHub Actions 🚀
+
 on:
+  push:
+    branches:
+      - develop
+      - main
   schedule:
-    - cron:  '25 * * * *'
-    # scheduled at 16:00 every day -- check that it works and change to 2-minutes-to-midnight
-  workflow_dispatch:
-
+    - cron:  '0,5,10,15,20,25,30,35,40,45,50,55 * * * *'
+    
 jobs:
-  print_timestamp:
+  Explore-GitHub-Actions:
     runs-on: ubuntu-latest
-    name: Simply print a timestamp
-
     steps:
-    - name: Timestamp
-      run: date
-
-  sync_with_upstream:
-    runs-on: ubuntu-latest
-    name: Sync master with upstream latest
-
-    steps:
-    - name: Checkout master
-      uses: actions/checkout@v2
-      with:
-        ref: master
-        
-    - name: Pull upstream changes
-      id: sync
-      uses: aormsby/Fork-Sync-With-Upstream-action@v3.1
-      with:
-        target_sync_branch: develop
-        upstream_sync_branch: main
-        upstream_sync_repo: astropy/astroquery
-
-    - name: Timestamp
-      run: date
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v4
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}
+      - run: echo "🍏 This job's status is ${{ job.status }}."
