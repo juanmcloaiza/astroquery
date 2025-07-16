@@ -1,0 +1,35 @@
+on:
+  schedule:
+    - cron:  '20 * * * *'
+    # scheduled at 16:00 every day -- check that it works and change to 2-minutes-to-midnight
+  workflow_dispatch:
+
+jobs:
+  print_timestamp:
+    runs-on: ubuntu-latest
+    name: Simply print a timestamp
+
+    steps:
+    - name: Timestamp
+      run: date
+
+  sync_with_upstream:
+    runs-on: ubuntu-latest
+    name: Sync master with upstream latest
+
+    steps:
+    - name: Checkout master
+      uses: actions/checkout@v2
+      with:
+        ref: master
+        
+    - name: Pull upstream changes
+      id: sync
+      uses: aormsby/Fork-Sync-With-Upstream-action@v3.1
+      with:
+        target_sync_branch: develop
+        upstream_sync_branch: main
+        upstream_sync_repo: astropy/astroquery
+
+    - name: Timestamp
+      run: date
