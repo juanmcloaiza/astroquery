@@ -1,0 +1,50 @@
+name: Sync Fork
+run-name: Sync Fork
+on:
+  schedule:
+    - cron:  '0,6,12,18,24,30,36,42,48,54 * * * *'
+  workflow_dispatch: # to enable manual runs of the workflow
+
+jobs:
+  Print-Timestamp:
+    runs-on: ubuntu-latest
+    steps:
+      - run: date
+
+  Sync-With-Upstream:
+    runs-on: ubuntu-latest
+    steps:
+      - run: echo "🎉 The job was automatically triggered by a ${{ github.event_name }} event."
+      - run: echo "🐧 This job is now running on a ${{ runner.os }} server hosted by GitHub!"
+      - run: echo "🔎 The name of your branch is ${{ github.ref }} and your repository is ${{ github.repository }}."
+      - name: Check out repository code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - run: echo "💡 The ${{ github.repository }} repository has been cloned to the runner."
+      - run: echo "🖥️ The workflow is now ready to test your code on the runner."
+      - name: List files in the repository
+        run: |
+          ls ${{ github.workspace }}
+      - name: Sync repo
+        run: |
+          cd ${{ github.workspace }}
+          git config --global user.email "juan_auto@sync_action.bot"
+          git config --global user.name "Auto Sync"
+          # git remote add upstream https://github.com/astropy/astroquery.git
+          git remote add upstream https://github.com/juanmcloaiza/astroquery.git
+          git remote -v
+          # git fetch upstream main
+          git fetch upstream upstream-mimic
+          echo "--- upstream log: "
+          # git log upstream/main --oneline -10
+          git log upstream/upstream-mimic --oneline -10
+          echo "--- current branch log before merge: "
+          git log --oneline -10
+          # git merge upstream/main
+          git merge upstream/upstream-mimic
+          echo "--- current branch log after merge: "
+          git log --oneline -10
+          echo "--- push force with lease"
+          git push --force-with-lease
+      - run: echo "🍏 This job's status is ${{ job.status }}."
