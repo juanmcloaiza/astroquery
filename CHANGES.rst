@@ -19,6 +19,13 @@ gaia
 - Rename datalink retrieval types EPOCH_SPECTRUM_RVS, EPOCH_SPECTRUM_XP_SSO, EPOCH_SPECTRUM_XP_CROWDING, MEAN_SPECTRUM_XP,
   EPOCH_SPECTRUM_XP and MEAN_SPECTRUM_XP_GRAVLENS. [#3382]
 
+mast
+^^^^
+
+- Deprecated the ``product`` parameter in the ``Tesscut.get_sectors``, ``Tesscut.get_cutouts``, and ``Tesscut.download_cutouts`` methods.
+  Support for TESS Image Calibration (TICA) high-level science products has been removed; only Science Processing Operations Center (SPOC) 
+  products are now supported. [#3391]
+
 Service fixes and enhancements
 ------------------------------
 
@@ -110,6 +117,9 @@ mast
   be found in the cloud. [#3314]
 
 - Improved ``MastMissions`` queries to accept lists for query critieria values, in addition to comma-delimited strings. [#3319]
+
+- Enhanced ``filter_products`` methods in ``MastMissions`` and ``Observations`` to support advanced filtering expressions
+  for numeric columns. [#3365]
 
 
 Infrastructure, Utility and Other Changes and Additions
