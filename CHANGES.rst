@@ -9,6 +9,13 @@ New Tools and Services
 API changes
 -----------
 
+esa.hubble
+^^^^^^^^^^
+
+- Internal refactor of the module to use to PyVO. [#3367]
+
+- Removal of the deprecated ``query_hst_tap`` method, use ``query_tap`` instead. [#3367]
+
 gaia
 ^^^^
 
@@ -120,6 +127,10 @@ mast
 
 - Enhanced ``filter_products`` methods in ``MastMissions`` and ``Observations`` to support advanced filtering expressions
   for numeric columns. [#3365]
+
+- Enhanced ``filter_products`` methods in ``MastMissions`` and ``Observations`` to support filtering with negated values. [#3393]
+
+- Fix bug where duplicate columns from server responses cause an error when converting to an `~astropy.table.Table`. [#3400]
 
 
 Infrastructure, Utility and Other Changes and Additions
