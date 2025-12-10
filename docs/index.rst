@@ -126,7 +126,7 @@ For the `~astroquery.vamdc` module:
   personal fork: ``python -m pip install git+https://github.com/keflavich/vamdclib-1.git``
 
 The following packages are optional dependencies and are required for the
-full functionality of the `~astroquery.mast` module:
+full functionality of the `~astroquery.mast` and `~astroquery.heasarc` modules:
 
 * `boto3 <https://boto3.amazonaws.com/v1/documentation/api/latest/index.html>`_
 
@@ -276,7 +276,7 @@ The following modules have been completed using a common API:
   ipac/irsa/irsa_dust/irsa_dust.rst
   ipac/irsa/ibe/ibe.rst
   ipac/irsa/irsa.rst
-  jplspec/jplspec.rst
+  linelists/jplspec/jplspec.rst
   magpis/magpis.rst
   mast/mast.rst
   mocserver/mocserver.rst
@@ -412,7 +412,7 @@ well as  cross section and collision rates.  Those services are:
   atomic/atomic.rst
   linelists/cdms/cdms.rst
   hitran/hitran.rst
-  jplspec/jplspec.rst
+  linelists/jplspec/jplspec.rst
   lamda/lamda.rst
   nist/nist.rst
   splatalogue/splatalogue.rst

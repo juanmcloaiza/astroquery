@@ -1247,20 +1247,23 @@ class TapPlus(Tap):
             print(f"USER response = {user}")
         return user.startswith(f"{user_id}:") and user.count("\\n") == 0
 
-    def get_datalinks(self, ids, *, linking_parameter=None, verbose=False):
+    def get_datalinks(self, ids, *, linking_parameter=None, extra_options=None, verbose=False):
         """Gets datalinks associated to the provided identifiers
 
         Parameters
         ----------
         ids : str list, mandatory
-            list of identifiers
+            List of identifiers
         linking_parameter : str, optional, default SOURCE_ID, valid values: SOURCE_ID, TRANSIT_ID, IMAGE_ID
             By default, all the identifiers are considered as source_id
             SOURCE_ID: the identifiers are considered as source_id
             TRANSIT_ID: the identifiers are considered as transit_id
             IMAGE_ID: the identifiers are considered as sif_observation_id
+        extra_options : str, optional, default None, valid values: METADATA
+            If present, an extra parameter OPTIONS will be added to the call, to be interpreted by the TAP service
+            METADATA: to retrieve extra metadata columns (currently supported by the Euclid archive)
         verbose : bool, optional, default 'False'
-            flag to display information about the process
+            Flag to display information about the process
 
         Returns
         -------
@@ -1282,15 +1285,17 @@ class TapPlus(Tap):
         if linking_parameter is not None:
             ids_arg = f'{ids_arg}&LINKING_PARAMETER={linking_parameter}'
 
+        if extra_options is not None:
+            ids_arg = f'{ids_arg}&OPTIONS={extra_options}'
+
         if verbose:
-            print(f"Datalink request: {ids_arg}")
-        connHandler = self.__getconnhandler()
-        response = connHandler.execute_datalinkpost(subcontext="links",
-                                                    data=ids_arg,
-                                                    verbose=verbose)
+            print(f"Datalink request: ID={ids_arg}")
+
+        conn_handler = self.__getconnhandler()
+        response = conn_handler.execute_datalinkpost(subcontext="links", data=ids_arg, verbose=verbose)
         if verbose:
             print(response.status, response.reason)
-        connHandler.check_launch_response_status(response, verbose, 200)
+        conn_handler.check_launch_response_status(response, verbose, 200)
         if verbose:
             print("Done.")
         results = utils.read_http_response(response, "votable", use_names_over_ids=self.use_names_over_ids)
@@ -1527,16 +1532,27 @@ class TapPlus(Tap):
         verbose : bool, optional, default 'False'
             flag to display information about the process
         """
+
         if table_name is None:
             raise ValueError("Table name cannot be null")
+
+        if '.' not in table_name:
+            if self.__user is None:
+                raise ValueError("You must login to delete the table")
+            full_qualified_table = 'user_' + self.__user + '.' + table_name
+        else:
+            if not table_name.startswith("user_"):
+                raise ValueError(f"Invalid table name {table_name}: expected format user_<user_name>.<table_name>")
+            full_qualified_table = table_name
+
         if force_removal is True:
             args = {
-                "TABLE_NAME": str(table_name),
+                "TABLE_NAME": str(full_qualified_table),
                 "DELETE": "TRUE",
                 "FORCE_REMOVAL": "TRUE"}
         else:
             args = {
-                "TABLE_NAME": str(table_name),
+                "TABLE_NAME": str(full_qualified_table),
                 "DELETE": "TRUE",
                 "FORCE_REMOVAL": "FALSE"}
         connHandler = self.__getconnhandler()
@@ -1545,7 +1561,7 @@ class TapPlus(Tap):
             print(response.status, response.reason)
             print(response.getheaders())
         connHandler.check_launch_response_status(response, verbose, 200)
-        msg = f"Table '{table_name}' deleted."
+        msg = f"Table '{full_qualified_table}' deleted."
         log.info(msg)
 
     def rename_table(self, *, table_name=None, new_table_name=None, new_column_names_dict=None, verbose=False):
@@ -1647,7 +1663,7 @@ class TapPlus(Tap):
             for value in change:
                 if value is None:
                     raise ValueError("None of the values for the changes can be null")
-                if (index == 1 and value != 'utype' and value != 'ucd' and value != 'flags' and value != 'indexed'):
+                if index == 1 and value != 'utype' and value != 'ucd' and value != 'flags' and value != 'indexed':
                     raise ValueError("Position 2 of all changes must be 'utype', 'ucd', 'flags' or 'indexed'")
                 index = index + 1
 

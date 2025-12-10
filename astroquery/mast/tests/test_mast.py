@@ -8,6 +8,7 @@ from shutil import copyfile
 from unittest.mock import patch
 
 import pytest
+import numpy as np
 
 from astropy.table import Table, unique
 from astropy.coordinates import SkyCoord
@@ -304,21 +305,21 @@ def test_missions_query_criteria(patch_post):
 def test_missions_get_product_list_async(patch_post):
     # String input
     result = mast.MastMissions.get_product_list_async('Z14Z0104T')
-    assert isinstance(result, MockResponse)
+    assert isinstance(result, list)
 
     # List input
     in_datasets = ['Z14Z0104T', 'Z14Z0102T']
     result = mast.MastMissions.get_product_list_async(in_datasets)
-    assert isinstance(result, MockResponse)
+    assert isinstance(result, list)
 
     # Row input
     datasets = mast.MastMissions.query_object("M101", radius=".002 deg")
     result = mast.MastMissions.get_product_list_async(datasets[:3])
-    assert isinstance(result, MockResponse)
+    assert isinstance(result, list)
 
     # Table input
     result = mast.MastMissions.get_product_list_async(datasets[0])
-    assert isinstance(result, MockResponse)
+    assert isinstance(result, list)
 
     # Unsupported data type for datasets
     with pytest.raises(TypeError) as err_type:
@@ -329,6 +330,11 @@ def test_missions_get_product_list_async(patch_post):
     with pytest.raises(InvalidQueryError) as err_empty:
         mast.MastMissions.get_product_list_async([' '])
     assert 'Dataset list is empty' in str(err_empty.value)
+
+    # No dataset keyword
+    with pytest.raises(InvalidQueryError, match='Dataset keyword not found for mission "invalid"'):
+        missions = mast.MastMissions(mission='invalid')
+        missions.get_product_list_async(Table({'a': [1, 2, 3]}))
 
 
 def test_missions_get_product_list(patch_post):
@@ -428,7 +434,7 @@ def test_missions_filter_products(patch_post):
     assert all(~((filtered['size'] >= 14400) & (filtered['size'] <= 17280)))
 
     # Negate a string match
-    filtered = mast.MastMissions.filter_products(products, category='!CALIBRATED')
+    filtered = mast.MastMissions.filter_products(products, category='!calibrated')
     assert all(filtered['category'] != 'CALIBRATED')
 
     # Negate one string in a list
@@ -510,6 +516,22 @@ def test_missions_get_dataset_kwd(patch_post, caplog):
     with caplog.at_level('WARNING', logger='astroquery'):
         assert 'The mission "unknown" does not have a known dataset ID keyword' in caplog.text
 
+
+@pytest.mark.parametrize(
+    'method, kwargs,',
+    [['query_region', dict()],
+     ['query_criteria', dict(ang_sep=0.6)]]
+)
+def test_missions_radius_too_large(method, kwargs, patch_post):
+    m = mast.MastMissions(mission='jwst')
+    coordinates = SkyCoord(0, 0, unit=u.deg)
+    radius = m._max_query_radius + 0.1 * u.deg
+    with pytest.raises(
+        InvalidQueryError, match='Query radius too large. Must be*'
+    ):
+        getattr(m, method)(coordinates=coordinates, radius=radius, **kwargs)
+
+
 ###################
 # MastClass tests #
 ###################
@@ -551,9 +573,11 @@ def test_mast_query(patch_post):
 
     # filtered search
     result = mast.Mast.mast_query('Mast.Caom.Filtered',
-                                  dataproduct_type=['image'],
-                                  proposal_pi=['Osten, Rachel A.'],
-                                  s_dec=[{'min': 43.5, 'max': 45.5}])
+                                  dataproduct_type=['image', 'spectrum'],
+                                  proposal_pi={'Osten, Rachel A.'},
+                                  calib_level=np.asarray(3),
+                                  s_dec={'min': 43.5, 'max': 45.5},
+                                  columns=['proposal_pi', 's_dec', 'obs_id'])
     pp_list = result['proposal_pi']
     sd_list = result['s_dec']
     assert isinstance(result, Table)
@@ -561,10 +585,18 @@ def test_mast_query(patch_post):
     assert max(sd_list) < 45.5
     assert min(sd_list) > 43.5
 
-    # error handling
-    with pytest.raises(InvalidQueryError) as invalid_query:
+    # warn if columns provided for non-filtered query
+    with pytest.warns(InputWarning, match="'columns' parameter is ignored"):
+        mast.Mast.mast_query('Mast.Caom.Cone', ra=23.34086, dec=60.658, radius=0.2, columns=['obs_id', 's_ra'])
+
+    # error if no filters provided for filtered query
+    with pytest.raises(InvalidQueryError, match="Please provide at least one filter."):
         mast.Mast.mast_query('Mast.Caom.Filtered')
-    assert "Please provide at least one filter." in str(invalid_query.value)
+
+    # error if a full range if not provided for range filter
+    with pytest.raises(InvalidQueryError,
+                       match='Range filter for "s_ra" must be a dictionary with "min" and "max" keys.'):
+        mast.Mast.mast_query('Mast.Caom.Filtered', s_ra={'min': 10.0})
 
 
 def test_resolve_object_single(patch_post):
@@ -601,6 +633,10 @@ def test_resolve_object_single(patch_post):
     with pytest.raises(ResolverError, match='Could not resolve "nonexisting" to a sky position.'):
         mast.Mast.resolve_object("nonexisting")
 
+    # Error if object is not a string
+    with pytest.raises(InvalidQueryError, match='All object names must be strings.'):
+        mast.Mast.resolve_object(1)
+
     # Error if single object cannot be resolved with given resolver
     with pytest.raises(ResolverError, match='Could not resolve "Barnard\'s Star" to a sky position using '
                        'resolver "NED".'):
@@ -622,20 +658,12 @@ def test_resolve_object_multi(patch_post):
         assert obj in coord_dict
         assert isinstance(coord_dict[obj], SkyCoord)
 
-    # Warn if one of the objects cannot be resolved
-    with pytest.warns(InputWarning, match='Could not resolve "nonexisting" to a sky position.'):
-        coord_dict = mast.Mast.resolve_object(["M1", "nonexisting"])
-
     # Resolver specified
     coord_dict = mast.Mast.resolve_object(objects, resolver="SIMBAD")
     assert isinstance(coord_dict, dict)
     for obj in objects:
         assert obj in coord_dict
         assert isinstance(coord_dict[obj], SkyCoord)
-
-    # Warn if one of the objects can't be resolved with given resolver
-    with pytest.warns(InputWarning, match='Could not resolve "TIC 307210830" to a sky position using resolver "NED"'):
-        mast.Mast.resolve_object(objects[:2], resolver="NED")
 
     # Resolve all
     coord_dict = mast.Mast.resolve_object(objects, resolve_all=True)
@@ -645,6 +673,14 @@ def test_resolve_object_multi(patch_post):
         obj_dict = coord_dict[obj]
         assert isinstance(obj_dict, dict)
         assert isinstance(obj_dict["SIMBAD"], SkyCoord)
+
+    # Warn if one of the objects cannot be resolved
+    with pytest.warns(InputWarning, match='Could not resolve "nonexisting" to a sky position.'):
+        coord_dict = mast.Mast.resolve_object(["M1", "nonexisting"])
+
+    # Warn if one of the objects can't be resolved with given resolver
+    with pytest.warns(InputWarning, match='Could not resolve "TIC 307210830" to a sky position using resolver "NED"'):
+        mast.Mast.resolve_object(objects[:2], resolver="NED")
 
     # Error if none of the objects can be resolved
     warnings.simplefilter("ignore", category=InputWarning)  # ignore warnings
@@ -794,11 +830,15 @@ def test_observations_get_product_list(patch_post):
     result = mast.Observations.get_product_list(in_obsids)
     assert isinstance(result, Table)
 
+    # Error if no valid obsids are found
+    with pytest.raises(InvalidQueryError, match='Observation list is empty'):
+        mast.Observations.get_product_list([' '])
+
 
 def test_observations_filter_products(patch_post):
     products = mast.Observations.get_product_list('2003738726')
     filtered = mast.Observations.filter_products(products,
-                                                 productType=["SCIENCE"],
+                                                 productType=["sCiEnCE"],
                                                  mrp_only=False)
     assert isinstance(filtered, Table)
     assert len(filtered) == 7
@@ -808,8 +848,10 @@ def test_observations_filter_products(patch_post):
     assert all(filtered['productGroupDescription'] == 'Minimum Recommended Products')
 
     # Filter by extension
-    filtered = mast.Observations.filter_products(products, extension='fits')
+    filtered = mast.Observations.filter_products(products, extension='FITS')
     assert len(filtered) > 0
+    filtered = mast.Observations.filter_products(products, extension=['png'])
+    assert len(filtered) == 0
 
     # Numeric filtering
     filtered = mast.Observations.filter_products(products, size='<50000')
