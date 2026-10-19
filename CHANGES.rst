@@ -1,3 +1,13 @@
+0.4.13.eso
+==========
+
+New Tools and Services
+----------------------
+
+eso
+^^^
+- Internal PR - Changelog to be uodated. [#35]
+
 0.4.12 (unreleased)
 ===================
 
