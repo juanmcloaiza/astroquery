@@ -257,8 +257,13 @@ class EsoClass(QueryWithLogin):
         self, query_str: str, tap: TAPService, error: Exception
     ) -> str:
         """Include the service error, submitted query, and endpoint-specific help."""
+        try:
+            tap_endpoint = self._tap_endpoint(tap.baseurl)
+        except ValueError:
+            tap_endpoint = tap.baseurl
         message = (
-            f"Error executing the following query:\n\n{query_str}\n\n"
+            f'Error executing the following query (tap_endpoint="{tap_endpoint}"):\n\n'
+            f"{query_str}\n\n"
             f"{type(error).__name__}: {error}\n"
         )
         cause = getattr(error, "cause", None)
