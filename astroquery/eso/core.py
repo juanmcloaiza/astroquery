@@ -253,17 +253,18 @@ class EsoClass(QueryWithLogin):
                           "To retrieve all the records set to None the ROW_LIMIT attribute",
                           MaxResultsWarning)
 
-    def _format_tap_error(self, query_str: str, tap: TAPService) -> str:
-        try:
-            tap_endpoint = self._tap_endpoint(tap.baseurl)
-        except ValueError:
-            # Keep the original exception path stable for unrecognized/custom TAP URLs.
-            tap_endpoint = tap.baseurl
-        return (f"Error executing the following query:\n\n"
-                f"{query_str}\n\n"
-                "See examples here: https://archive.eso.org/tap_obs/examples\n\n"
-                f"For maximum query freedom use the query_tap method:\n\n"
-                f' >>> Eso().query_tap( "{query_str}", tap_endpoint="{tap_endpoint}")\n\n')
+    def _format_tap_error(
+        self, query_str: str, tap: TAPService, error: Exception
+    ) -> str:
+        """Include the service error, submitted query, and endpoint-specific help."""
+        message = (
+            f"Error executing the following query:\n\n{query_str}\n\n"
+            f"{type(error).__name__}: {error}\n"
+        )
+        cause = getattr(error, "cause", None)
+        if cause is not None and str(cause) and str(cause) != str(error):
+            message += f"Cause: {cause}\n"
+        return message + f"\nSee examples here: {tap.baseurl.rstrip('/')}/examples\n"
 
     def _try_retrieve_pyvo_table(self,
                                  query_str: str,
@@ -274,16 +275,16 @@ class EsoClass(QueryWithLogin):
 
         try:
             table_with_an_extra_row = tap.search(query=query_str, maxrec=row_limit_plus_one).to_table()
-        except DALQueryError:
-            log.error(self._format_tap_error(query_str, tap))
+        except DALQueryError as error:
+            log.error(self._format_tap_error(query_str, tap, error))
         except DALOverflowWarning as ex:
             # DALOverflowWarning is raised when the result set is incomplete
             # We handle it silently and let _maybe_warn_about_table_length issue the appropriate warning
             log.warning(f"Partial result set: {ex}")
         except DALFormatError as e:
-            raise DALFormatError(self._format_tap_error(query_str, tap) + f"cause: {e.cause}") from e
+            raise DALFormatError(self._format_tap_error(query_str, tap, e)) from e
         except Exception as e:
-            raise type(e)(f"{e}\n" + self._format_tap_error(query_str, tap)) from e
+            raise type(e)(self._format_tap_error(query_str, tap, e)) from e
 
         self._maybe_warn_about_table_length(table_with_an_extra_row, row_limit_plus_one)
         return table_with_an_extra_row[:self.ROW_LIMIT]
