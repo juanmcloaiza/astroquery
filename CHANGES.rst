@@ -7,7 +7,8 @@ ESO internal PR
 eso
 ^^^
 - Refactored code. [#35]
-- Trigger unit testss on internal PR to develop branch. [#35]
+- Trigger unit tests on internal PR to develop branch. [#35]
+- Issue/14 - Fix misleading error message on TAP query failures [#36]
 
 0.4.12 (unreleased)
 ===================
