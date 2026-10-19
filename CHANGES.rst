@@ -1,12 +1,13 @@
 0.4.13.eso
 ==========
 
-New Tools and Services
-----------------------
+ESO internal PR
+---------------
 
 eso
 ^^^
-- Internal PR - Changelog to be uodated. [#35]
+- Refactored code. [#35]
+- Trigger unit testss on internal PR to develop branch. [#35]
 
 0.4.12 (unreleased)
 ===================
