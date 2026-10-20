@@ -425,7 +425,7 @@ class EsoClass(QueryWithLogin):
         Returns
         -------
         list[str]
-            List of catalogue table names.
+            Unique catalogue table names, without the schema prefix.
         """
         schema = _EsoNames.catalog_schema
 
@@ -441,10 +441,12 @@ class EsoClass(QueryWithLogin):
 
         query_str += "ORDER BY table_name"
 
-        res = self.query_tap(query_str.strip(), tap_endpoint="tap_cat")
-        # to be compatible with TAP1.0 and TAP1.1
-        res = [table_name.removeprefix(f"{schema}.") for table_name in res["table_name"]]
-        return res
+        result = self.query_tap(query_str.strip(), tap_endpoint="tap_cat")
+        # Normalize TAP 1.0/1.1 names before deduplicating; preserve service order.
+        catalog_names = (
+            table_name.removeprefix(f"{schema}.") for table_name in result["table_name"]
+        )
+        return list(dict.fromkeys(catalog_names))
 
     def _query_on_allowed_values(
         self,
